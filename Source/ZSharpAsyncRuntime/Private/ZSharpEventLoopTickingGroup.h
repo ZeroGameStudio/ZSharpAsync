@@ -4,13 +4,14 @@
 
 namespace ZSharp
 {
-	enum class EZSharpEventLoopEventType : uint8
+	enum class EZSharpEventLoopTickingGroup : uint8
 	{
 		PreWorldTick,
 		PreActorTick,
 		PrePhysicsTick,
 		DuringPhysicsTick,
 		PostPhysicsTick,
+		PostWorldTimerTick,
 		PostUpdateTick,
 		PostActorTick,
 		PostWorldTick,

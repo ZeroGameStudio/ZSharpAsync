@@ -21,7 +21,7 @@ internal static class DllEntry
     {
         int32 offset = 0;
         
-        *args->ManagedFunctions[offset++] = (delegate* unmanaged<EEventLoopEventType, float, float, double, double, void>)&EventLoop_Interop.NotifyEvent;
+        *args->ManagedFunctions[offset++] = (delegate* unmanaged<EEventLoopTickingGroup, float, float, double, double, void>)&EventLoop_Interop.NotifyEvent;
 
         return 0;
     }, -1);

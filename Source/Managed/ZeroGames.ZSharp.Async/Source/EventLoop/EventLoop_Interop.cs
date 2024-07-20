@@ -8,7 +8,7 @@ internal static class EventLoop_Interop
 {
 
 	[UnmanagedCallersOnly]
-	public static void NotifyEvent(EEventLoopEventType eventType, float worldDeltaTime, float realDeltaTime, double worldElapsedTime, double realElapsedTime) => Uncaught.FatalIfUncaught(() =>
+	public static void NotifyEvent(EEventLoopTickingGroup eventType, float worldDeltaTime, float realDeltaTime, double worldElapsedTime, double realElapsedTime) => Uncaught.FatalIfUncaught(() =>
 	{
 		EventLoop.Get().NotifyEvent(eventType, worldDeltaTime, realDeltaTime, worldElapsedTime, realElapsedTime);
 	});

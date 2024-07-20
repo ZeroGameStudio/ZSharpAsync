@@ -2,13 +2,13 @@
 
 #pragma once
 
-#include "ZSharpEventLoopEventType.h"
+#include "ZSharpEventLoopTickingGroup.h"
 
 namespace ZSharp
 {
 	struct FZSharpEventLoop_Interop
 	{
-		inline static void(*GNotifyEvent)(EZSharpEventLoopEventType, float, float, double, double) = nullptr;
+		inline static void(*GNotifyEvent)(EZSharpEventLoopTickingGroup, float, float, double, double) = nullptr;
 	};
 }
 

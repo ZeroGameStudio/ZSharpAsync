@@ -5,7 +5,7 @@ namespace ZeroGames.ZSharp.Async.EventLoop;
 public interface IEventLoopObserver
 {
 	void NotifyEvent(in EventLoopArgs args);
-	EEventLoopEventType EventType { get; }
+	EEventLoopTickingGroup EventType { get; }
 	EventLoopObserverHandle Handle { get; set; } // WARNING: NEVER SET this in user code.
 }
 

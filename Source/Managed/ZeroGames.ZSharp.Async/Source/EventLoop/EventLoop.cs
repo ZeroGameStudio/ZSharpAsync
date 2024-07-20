@@ -38,7 +38,7 @@ internal class EventLoop : IEventLoop
 		}
 	}
 
-	public EventLoopObserverHandle RegisterObserver(EEventLoopEventType eventType, EventLoopHandler observer)
+	public EventLoopObserverHandle RegisterObserver(EEventLoopTickingGroup eventType, EventLoopHandler observer)
 	{
 		EventLoopObserverHandle handle = AllocateHandle();
 
@@ -53,7 +53,7 @@ internal class EventLoop : IEventLoop
 		}
 	}
 
-	public EventLoopObserverHandle RegisterObserver(EEventLoopEventType eventType, Action observer)
+	public EventLoopObserverHandle RegisterObserver(EEventLoopTickingGroup eventType, Action observer)
 	{
 		EventLoopObserverHandle handle = AllocateHandle();
 
@@ -68,7 +68,7 @@ internal class EventLoop : IEventLoop
 		}
 	}
 
-	public EventLoopObserverHandle RegisterObserver(EEventLoopEventType eventType, Action<float> observer)
+	public EventLoopObserverHandle RegisterObserver(EEventLoopTickingGroup eventType, Action<float> observer)
 	{
 		EventLoopObserverHandle handle = AllocateHandle();
 
@@ -138,7 +138,7 @@ internal class EventLoop : IEventLoop
 		}
 	}
 
-	internal void NotifyEvent(EEventLoopEventType eventType, float worldDeltaTime, float realDeltaTime, double worldElapsedTime, double realElapsedTime)
+	internal void NotifyEvent(EEventLoopTickingGroup eventType, float worldDeltaTime, float realDeltaTime, double worldElapsedTime, double realElapsedTime)
 	{
 		lock (_registryLock)
 		{
@@ -234,7 +234,7 @@ internal class EventLoop : IEventLoop
 		}
 	}
 
-	private EventLoopObserverHandle InternalRegisterObserver(EventLoopObserverHandle handle, EEventLoopEventType eventType, EventLoopHandler observer)
+	private EventLoopObserverHandle InternalRegisterObserver(EventLoopObserverHandle handle, EEventLoopTickingGroup eventType, EventLoopHandler observer)
 	{
 		lock (_registryLock)
 		{
@@ -243,7 +243,7 @@ internal class EventLoop : IEventLoop
 		}
 	}
 
-	private EventLoopObserverHandle InternalRegisterObserver(EventLoopObserverHandle handle, EEventLoopEventType eventType, Action observer)
+	private EventLoopObserverHandle InternalRegisterObserver(EventLoopObserverHandle handle, EEventLoopTickingGroup eventType, Action observer)
 	{
 		lock (_registryLock)
 		{
@@ -252,7 +252,7 @@ internal class EventLoop : IEventLoop
 		}
 	}
 
-	private EventLoopObserverHandle InternalRegisterObserver(EventLoopObserverHandle handle, EEventLoopEventType eventType, Action<float> observer)
+	private EventLoopObserverHandle InternalRegisterObserver(EventLoopObserverHandle handle, EEventLoopTickingGroup eventType, Action<float> observer)
 	{
 		lock (_registryLock)
 		{
@@ -383,9 +383,9 @@ internal class EventLoop : IEventLoop
 	private object _registryLock = new();
 	private Dictionary<EventLoopObserverHandle, IEventLoopObserver> _interfaceObserverMap = new();
 	private Dictionary<EventLoopObserverHandle, WeakReference<IEventLoopObserver>> _weakInterfaceObserverMap = new();
-	private Dictionary<EventLoopObserverHandle, (EEventLoopEventType Type, EventLoopHandler Delegate)> _fullDelegateObserverMap = new();
-	private Dictionary<EventLoopObserverHandle, (EEventLoopEventType Type, Action Delegate)> _simpleDelegateObserverMap = new();
-	private Dictionary<EventLoopObserverHandle, (EEventLoopEventType Type, Action<float> Delegate)> _worldDeltaDelegateObserverMap = new();
+	private Dictionary<EventLoopObserverHandle, (EEventLoopTickingGroup Type, EventLoopHandler Delegate)> _fullDelegateObserverMap = new();
+	private Dictionary<EventLoopObserverHandle, (EEventLoopTickingGroup Type, Action Delegate)> _simpleDelegateObserverMap = new();
+	private Dictionary<EventLoopObserverHandle, (EEventLoopTickingGroup Type, Action<float> Delegate)> _worldDeltaDelegateObserverMap = new();
 	
 	// All codepaths that access _currentHandle or any IEventLoopObserver's Handle property have to acquire this lock.
 	private ReaderWriterLockSlim _handleLock = new();

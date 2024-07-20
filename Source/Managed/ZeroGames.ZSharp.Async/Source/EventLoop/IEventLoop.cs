@@ -9,9 +9,9 @@ public interface IEventLoop
 	public static IEventLoop Get() => EventLoop.Get();
 	EventLoopObserverHandle RegisterObserver(IEventLoopObserver observer);
 	EventLoopObserverHandle RegisterWeakObserver(IEventLoopObserver observer);
-	EventLoopObserverHandle RegisterObserver(EEventLoopEventType eventType, EventLoopHandler observer);
-	EventLoopObserverHandle RegisterObserver(EEventLoopEventType eventType, Action observer);
-	EventLoopObserverHandle RegisterObserver(EEventLoopEventType eventType, Action<float> observer);
+	EventLoopObserverHandle RegisterObserver(EEventLoopTickingGroup eventType, EventLoopHandler observer);
+	EventLoopObserverHandle RegisterObserver(EEventLoopTickingGroup eventType, Action observer);
+	EventLoopObserverHandle RegisterObserver(EEventLoopTickingGroup eventType, Action<float> observer);
 	void UnregisterObserver(IEventLoopObserver observer);
 	void UnregisterObserver(EventLoopObserverHandle observer);
 }

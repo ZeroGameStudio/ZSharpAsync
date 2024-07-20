@@ -4,7 +4,7 @@ namespace ZeroGames.ZSharp.Async.EventLoop;
 
 public readonly ref struct EventLoopArgs
 {
-	public EEventLoopEventType EventType { get; init; }
+	public EEventLoopTickingGroup EventType { get; init; }
 	public float WorldDeltaTime { get; init; }
 	public float RealDeltaTime { get; init; }
 	public double WorldElapsedTime { get; init; }

@@ -9,12 +9,12 @@
 
 void FZSharpEventLoopTickFunction::Run() const
 {
-	static const TMap<ETickingGroup, ZSharp::EZSharpEventLoopEventType> GTypeMap
+	static const TMap<ETickingGroup, ZSharp::EZSharpEventLoopTickingGroup> GTypeMap
 	{
-		{ TG_PrePhysics, ZSharp::EZSharpEventLoopEventType::PrePhysicsTick },
-		{ TG_DuringPhysics, ZSharp::EZSharpEventLoopEventType::DuringPhysicsTick },
-		{ TG_PostPhysics, ZSharp::EZSharpEventLoopEventType::PostPhysicsTick },
-		{ TG_PostUpdateWork, ZSharp::EZSharpEventLoopEventType::PostUpdateTick },
+		{ TG_PrePhysics, ZSharp::EZSharpEventLoopTickingGroup::PrePhysicsTick },
+		{ TG_DuringPhysics, ZSharp::EZSharpEventLoopTickingGroup::DuringPhysicsTick },
+		{ TG_PostPhysics, ZSharp::EZSharpEventLoopTickingGroup::PostPhysicsTick },
+		{ TG_PostUpdateWork, ZSharp::EZSharpEventLoopTickingGroup::PostUpdateTick },
 	};
 
 	Owner->NotifyEvent(GTypeMap[TickGroup]);
@@ -32,11 +32,11 @@ void UZSharpEventLoopSubsystem::Initialize(FSubsystemCollectionBase& collection)
 {
 	Super::Initialize(collection);
 
-	FWorldDelegates::OnWorldTickStart.AddUObject(this, &ThisClass::HandleWorldDelegate, ZSharp::EZSharpEventLoopEventType::PreWorldTick);
-	FWorldDelegates::OnWorldPreActorTick.AddUObject(this, &ThisClass::HandleWorldDelegate, ZSharp::EZSharpEventLoopEventType::PreActorTick);
-	FWorldDelegates::OnWorldPostActorTick.AddUObject(this, &ThisClass::HandleWorldDelegate, ZSharp::EZSharpEventLoopEventType::PostActorTick);
-	FWorldDelegates::OnWorldTickEnd.AddUObject(this, &ThisClass::HandleWorldDelegate, ZSharp::EZSharpEventLoopEventType::PostWorldTick);
-	
+	FWorldDelegates::OnWorldTickStart.AddUObject(this, &ThisClass::HandleWorldDelegate, ZSharp::EZSharpEventLoopTickingGroup::PreWorldTick);
+	FWorldDelegates::OnWorldPreActorTick.AddUObject(this, &ThisClass::HandleWorldDelegate, ZSharp::EZSharpEventLoopTickingGroup::PreActorTick);
+	FWorldDelegates::OnWorldPostActorTick.AddUObject(this, &ThisClass::HandleWorldDelegate, ZSharp::EZSharpEventLoopTickingGroup::PostActorTick);
+	FWorldDelegates::OnWorldTickEnd.AddUObject(this, &ThisClass::HandleWorldDelegate, ZSharp::EZSharpEventLoopTickingGroup::PostWorldTick);
+
 	ULevel* level = GetWorldRef().PersistentLevel;
 	PrePhysicsTickFunction->RegisterTickFunction(level);
 	DuringPhysicsTickFunction->RegisterTickFunction(level);
@@ -63,17 +63,27 @@ bool UZSharpEventLoopSubsystem::DoesSupportWorldType(const EWorldType::Type worl
 #endif
 }
 
-void UZSharpEventLoopSubsystem::HandleWorldDelegate(UWorld* world, ELevelTick tickType, float, ZSharp::EZSharpEventLoopEventType eventType)
+void UZSharpEventLoopSubsystem::Tick(float DeltaTime)
+{
+	NotifyEvent(ZSharp::EZSharpEventLoopTickingGroup::PostWorldTimerTick);
+}
+
+TStatId UZSharpEventLoopSubsystem::GetStatId() const
+{
+	RETURN_QUICK_DECLARE_CYCLE_STAT(UZSharpEventLoopSubsystem, STATGROUP_Tickables);
+}
+
+void UZSharpEventLoopSubsystem::HandleWorldDelegate(UWorld* world, ELevelTick, float, ZSharp::EZSharpEventLoopTickingGroup group)
 {
 	if (world != GetWorld())
 	{
 		return;
 	}
 
-	NotifyEvent(eventType);
+	NotifyEvent(group);
 }
 
-void UZSharpEventLoopSubsystem::NotifyEvent(ZSharp::EZSharpEventLoopEventType eventType)
+void UZSharpEventLoopSubsystem::NotifyEvent(ZSharp::EZSharpEventLoopTickingGroup group)
 {
 	ZSharp::IZMasterAssemblyLoadContext* alc = ZSharp::IZSharpClr::Get().GetMasterAlc();
 	if (!alc)
@@ -85,7 +95,7 @@ void UZSharpEventLoopSubsystem::NotifyEvent(ZSharp::EZSharpEventLoopEventType ev
 	ON_SCOPE_EXIT { alc->PopRedFrame(); };
 	
 	const FGameTime time = GetWorldRef().GetTime();
-	ZSharp::FZSharpEventLoop_Interop::GNotifyEvent(eventType, time.GetDeltaWorldTimeSeconds(), time.GetDeltaRealTimeSeconds(), time.GetWorldTimeSeconds(), time.GetRealTimeSeconds());
+	ZSharp::FZSharpEventLoop_Interop::GNotifyEvent(group, time.GetDeltaWorldTimeSeconds(), time.GetDeltaRealTimeSeconds(), time.GetWorldTimeSeconds(), time.GetRealTimeSeconds());
 }
 
 

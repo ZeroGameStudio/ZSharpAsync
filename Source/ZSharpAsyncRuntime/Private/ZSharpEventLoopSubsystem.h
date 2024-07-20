@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "ZSharpEventLoopEventType.h"
+#include "ZSharpEventLoopTickingGroup.h"
 
 #include "ZSharpEventLoopSubsystem.generated.h"
 
@@ -35,7 +35,7 @@ private:
 };
 
 UCLASS()
-class UZSharpEventLoopSubsystem : public UWorldSubsystem
+class UZSharpEventLoopSubsystem : public UWorldSubsystem, public FTickableGameObject
 {
 	GENERATED_BODY()
 
@@ -45,14 +45,22 @@ public:
 	UZSharpEventLoopSubsystem();
 
 public:
+	// UWorldSubsystem interface
 	virtual void Initialize(FSubsystemCollectionBase& collection) override;
 	virtual void Deinitialize() override;
 	
 	virtual bool DoesSupportWorldType(const EWorldType::Type worldType) const override;
 
+	// FTickableObjectBase interface
+	virtual void Tick(float DeltaTime) override;
+	virtual TStatId GetStatId() const override;
+
+	// FTickableGameObject interface
+	virtual UWorld* GetTickableGameObjectWorld() const override { return GetWorld(); }
+
 private:
-	void HandleWorldDelegate(UWorld* world, ELevelTick, float, ZSharp::EZSharpEventLoopEventType eventType);
-	void NotifyEvent(ZSharp::EZSharpEventLoopEventType eventType);
+	void HandleWorldDelegate(UWorld* world, ELevelTick, float, ZSharp::EZSharpEventLoopTickingGroup group);
+	void NotifyEvent(ZSharp::EZSharpEventLoopTickingGroup group);
 
 private:
 	TUniquePtr<FZSharpEventLoopTickFunction> PrePhysicsTickFunction;
