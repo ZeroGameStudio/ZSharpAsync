@@ -8,80 +8,10 @@ internal class EventLoop : IEventLoop
 
 	internal static EventLoop Get() => s_singleton;
 
-	public EventLoopObserverHandle RegisterObserver(IEventLoopObserver observer)
-	{
-		EventLoopObserverHandle handle = AllocateHandleForObserver(observer);
-
-		if (UnrealEngineStatics.IsInGameThread() && _isNotifing)
-		{
-			_deferredRequestMap[handle] = () => { InternalRegisterObserver(observer); };
-			return handle;
-		}
-		else
-		{
-			return InternalRegisterWeakObserver(observer);
-		}
-	}
-
-	public EventLoopObserverHandle RegisterWeakObserver(IEventLoopObserver observer)
-	{
-		EventLoopObserverHandle handle = AllocateHandleForObserver(observer);
-
-		if (UnrealEngineStatics.IsInGameThread() && _isNotifing)
-		{
-			_deferredRequestMap[handle] = () => { InternalRegisterWeakObserver(observer); };
-			return handle;
-		}
-		else
-		{
-			return InternalRegisterWeakObserver(observer);
-		}
-	}
-
-	public EventLoopObserverHandle RegisterObserver(EEventLoopTickingGroup eventType, EventLoopHandler observer)
-	{
-		EventLoopObserverHandle handle = AllocateHandle();
-
-		if (UnrealEngineStatics.IsInGameThread() && _isNotifing)
-		{
-			_deferredRequestMap[handle] = () => { InternalRegisterObserver(handle, eventType, observer); };
-			return handle;
-		}
-		else
-		{
-			return InternalRegisterObserver(handle, eventType, observer);
-		}
-	}
-
-	public EventLoopObserverHandle RegisterObserver(EEventLoopTickingGroup eventType, Action observer)
-	{
-		EventLoopObserverHandle handle = AllocateHandle();
-
-		if (UnrealEngineStatics.IsInGameThread() && _isNotifing)
-		{
-			_deferredRequestMap[handle] = () => { InternalRegisterObserver(handle, eventType, observer); };
-			return handle;
-		}
-		else
-		{
-			return InternalRegisterObserver(handle, eventType, observer);
-		}
-	}
-
-	public EventLoopObserverHandle RegisterObserver(EEventLoopTickingGroup eventType, Action<float> observer)
-	{
-		EventLoopObserverHandle handle = AllocateHandle();
-
-		if (UnrealEngineStatics.IsInGameThread() && _isNotifing)
-		{
-			_deferredRequestMap[handle] = () => { InternalRegisterObserver(handle, eventType, observer); };
-			return handle;
-		}
-		else
-		{
-			return InternalRegisterObserver(handle, eventType, observer);
-		}
-	}
+	public EventLoopObserverHandle RegisterObserver(IEventLoopObserver observer, object? lifecycle) => InternalRegisterObserver(observer.TickingGroup, observer, lifecycle);
+	public EventLoopObserverHandle RegisterObserver(EEventLoopTickingGroup group, EventLoopHandler observer, object? lifecycle) => InternalRegisterObserver(group, observer, lifecycle);
+	public EventLoopObserverHandle RegisterObserver(EEventLoopTickingGroup group, Action observer, object? lifecycle) => InternalRegisterObserver(group, observer, lifecycle);
+	public EventLoopObserverHandle RegisterObserver(EEventLoopTickingGroup group, Action<float> observer, object? lifecycle) => InternalRegisterObserver(group, observer, lifecycle);
 
 	public void UnregisterObserver(IEventLoopObserver observer)
 	{
@@ -91,29 +21,13 @@ internal class EventLoop : IEventLoop
 			_handleLock.EnterReadLock();
 			
 			handle = observer.Handle;
-			if (!handle.IsValid)
-			{
-				return;
-			}
 		}
 		finally
 		{
 			_handleLock.ExitReadLock();
 		}
-
-		if (UnrealEngineStatics.IsInGameThread() && _isNotifing)
-		{
-			if (_deferredRequestMap.Remove(handle))
-			{
-				return;
-			}
-			
-			_deferredRequestMap[handle] = () => { InternalUnregisterObserverInterface(handle); };
-		}
-		else
-		{
-			InternalUnregisterObserverInterface(handle);
-		}
+		
+		UnregisterObserver(handle);
 	}
 
 	public void UnregisterObserver(EventLoopObserverHandle observer)
@@ -138,18 +52,20 @@ internal class EventLoop : IEventLoop
 		}
 	}
 
-	internal void NotifyEvent(EEventLoopTickingGroup eventType, float worldDeltaTime, float realDeltaTime, double worldElapsedTime, double realElapsedTime)
+	internal void NotifyEvent(EEventLoopTickingGroup group, float worldDeltaTime, float realDeltaTime, double worldElapsedTime, double realElapsedTime)
 	{
 		lock (_registryLock)
 		{
 			try
 			{
+				_isNotifing = true;
+				
 				_worldAccumulatedTime += worldDeltaTime;
 				_realAcccumulatedTime += realDeltaTime;
 		
 				EventLoopArgs args = new()
 				{
-					EventType = eventType,
+					TickingGroup = group,
 					WorldDeltaTime = worldDeltaTime,
 					RealDeltaTime = realDeltaTime,
 					WorldElapsedTime = worldElapsedTime,
@@ -157,55 +73,84 @@ internal class EventLoop : IEventLoop
 					WorldAccumulatedTime = _worldAccumulatedTime,
 					RealAccumulatedTime = _realAcccumulatedTime,
 				};
-		
-				foreach (var pair in _interfaceObserverMap)
+
+				bool mayHaveSideEffects = false;
+				if (_observerMap.TryGetValue(group, out var registry))
 				{
-					if (pair.Value.EventType == eventType)
+					foreach (var pair in registry)
 					{
-						pair.Value.NotifyEvent(args);
+						Rec rec = pair.Value;
+						object? observer = null;
+						if (rec.Lifecycle is null)
+						{
+							// Need explicit unregister
+							observer = rec.Observer;
+						}
+						else if (rec.Observer is null)
+						{
+							// Use self lifecycle scope
+							observer = rec.Lifecycle.Target;
+						}
+						else
+						{
+							// Use explicit lifecycle scope
+							object? lifecycle = rec.Lifecycle.Target;
+							if (lifecycle is not null && (lifecycle is not IExplicitLifecycle explicitLifecycle || explicitLifecycle.IsAlive))
+							{
+								observer = rec.Observer;
+							}
+						}
+
+						if (observer is not null)
+						{
+							mayHaveSideEffects = true;
+							try
+							{
+								if (observer is Action<float> floatAction)
+								{
+									floatAction.Invoke(worldDeltaTime);
+								}
+								else if (observer is Action action)
+								{
+									action.Invoke();
+								}
+								else if (observer is EventLoopHandler handler)
+								{
+									handler.Invoke(args);
+								}
+								else if (observer is IEventLoopObserver typedObserver)
+								{
+									typedObserver.NotifyEvent(args);
+								}
+							}
+							catch (Exception ex)
+							{
+								Logger.Error($"Unhandled Exception Detected in Event Loop.\n{ex}");
+							}
+						}
+						else
+						{
+							_stales[_numStales++] = pair.Key;
+						}
 					}
 				}
 				
-				foreach (var pair in _weakInterfaceObserverMap)
+				// Compact
+				for (int32 i = 0; i < _numStales; ++i)
 				{
-					if (pair.Value.TryGetTarget(out var observer) && observer.EventType == eventType)
-					{
-						observer.NotifyEvent(args);
-					}
-					else if (_numStales < _stales.Length)
-					{
-						_stales[_numStales++] = pair.Key;
-					}
+					registry!.Remove(_stales[i], out _);
 				}
-
-				foreach (var pair in _fullDelegateObserverMap)
-				{
-					if (pair.Value.Type == eventType)
-					{
-						pair.Value.Delegate.Invoke(args);
-					}
-				}
-
-				foreach (var pair in _simpleDelegateObserverMap)
-				{
-					if (pair.Value.Type == eventType)
-					{
-						pair.Value.Delegate.Invoke();
-					}
-				}
-
-				foreach (var pair in _worldDeltaDelegateObserverMap)
-				{
-					if (pair.Value.Type == eventType)
-					{
-						pair.Value.Delegate.Invoke(worldDeltaTime);
-					}
-				}
+				_numStales = 0;
 				
-				ApplyDeferredRequests();
-				Compact();
-				
-				_isNotifing = true;
+				// Apply deferred requests
+				if (mayHaveSideEffects)
+				{
+					foreach (var pair in _deferredRequestMap)
+					{
+						pair.Value.Invoke();
+					}
+					_deferredRequestMap.Clear();
+				}
 			}
 			finally
 			{
@@ -213,94 +158,74 @@ internal class EventLoop : IEventLoop
 			}
 		}
 	}
-	
-	private EventLoopObserverHandle InternalRegisterObserver(IEventLoopObserver observer)
+
+	private EventLoopObserverHandle InternalRegisterObserver(EEventLoopTickingGroup group, object observer, object? lifecycle)
 	{
-		lock (_registryLock)
-		{ 
-			EventLoopObserverHandle handle = observer.Handle;
-			_interfaceObserverMap[handle] = observer;
-			return handle;
+		EventLoopObserverHandle handle = AllocateHandle();
+
+		if (UnrealEngineStatics.IsInGameThread() && _isNotifing)
+		{
+			_deferredRequestMap[handle] = () => { ActualRegisterObserver(group, handle, observer, lifecycle); };
 		}
+		else
+		{
+			ActualRegisterObserver(group, handle, observer, lifecycle);
+		}
+		
+		return handle;
 	}
 
-	private EventLoopObserverHandle InternalRegisterWeakObserver(IEventLoopObserver observer)
+	private void ActualRegisterObserver(EEventLoopTickingGroup group, EventLoopObserverHandle handle, object observer, object? lifecycle)
 	{
 		lock (_registryLock)
 		{
-			EventLoopObserverHandle handle = observer.Handle;
-			_weakInterfaceObserverMap[handle] = new(observer);
-			return handle;
-		}
-	}
-
-	private EventLoopObserverHandle InternalRegisterObserver(EventLoopObserverHandle handle, EEventLoopTickingGroup eventType, EventLoopHandler observer)
-	{
-		lock (_registryLock)
-		{
-			_fullDelegateObserverMap[handle] = (eventType, observer);
-			return handle;
-		}
-	}
-
-	private EventLoopObserverHandle InternalRegisterObserver(EventLoopObserverHandle handle, EEventLoopTickingGroup eventType, Action observer)
-	{
-		lock (_registryLock)
-		{
-			_simpleDelegateObserverMap[handle] = (eventType, observer);
-			return handle;
-		}
-	}
-
-	private EventLoopObserverHandle InternalRegisterObserver(EventLoopObserverHandle handle, EEventLoopTickingGroup eventType, Action<float> observer)
-	{
-		lock (_registryLock)
-		{
-			_worldDeltaDelegateObserverMap[handle] = (eventType, observer);
-			return handle;
-		}
-	}
-
-	private void InternalUnregisterObserverInterface(EventLoopObserverHandle observer)
-	{
-		lock (_registryLock)
-		{
-			if (_interfaceObserverMap.Remove(observer, out var observerObj))
+			if (!_observerMap.TryGetValue(group, out var registry))
 			{
-				ClearHandleForObserver(observerObj);
+				registry = new();
+				_observerMap[group] = registry;
 			}
+
+			object? observerRec = null;
+			WeakReference? lifecycleRec = null;
+			if (lifecycle is null)
+			{
+				// Need explicit unregister
+				observerRec = observer;
+			}
+			else if (ReferenceEquals(observer, lifecycle))
+			{
+				if (observer is Delegate)
+				{
+					throw new InvalidOperationException("Self-bind lifecycle used for delegate.");
+				}
+				// Use self lifecycle scope
+				lifecycleRec = new(observer);
+			}
+			else
+			{
+				// Use explicit lifecycle scope
+				observerRec = observer;
+				lifecycleRec = new(lifecycle);
+			}
+
+			registry[handle] = new(observerRec, lifecycleRec);
 		}
 	}
-
+	
 	private void InternalUnregisterObserver(EventLoopObserverHandle observer)
 	{
 		lock (_registryLock)
 		{
-			if (_worldDeltaDelegateObserverMap.Remove(observer, out _))
+			foreach (var pair in _observerMap)
 			{
-				return;
-			}
-
-			if (_simpleDelegateObserverMap.Remove(observer, out _))
-			{
-				return;
-			}
-
-			if (_fullDelegateObserverMap.Remove(observer, out _))
-			{
-				return;
-			}
-
-			if (_interfaceObserverMap.Remove(observer, out var observerObj))
-			{
-				ClearHandleForObserver(observerObj);
-			}
-		
-			if (_weakInterfaceObserverMap.Remove(observer, out var observerWr))
-			{
-				if (observerWr.TryGetTarget(out observerObj))
+				if (pair.Value.Remove(observer, out var rec))
 				{
-					ClearHandleForObserver(observerObj);
+					if (rec.Observer is IEventLoopObserver typedObserver)
+					{
+						typedObserver.Handle = default;
+					}
+
+					return;
 				}
 			}
 		}
@@ -355,38 +280,14 @@ internal class EventLoop : IEventLoop
 			_handleLock.ExitWriteLock();
 		}
 	}
-	
-	private void ApplyDeferredRequests()
-	{
-		foreach (var pair in _deferredRequestMap)
-		{
-			pair.Value.Invoke();
-		}
-		
-		_deferredRequestMap.Clear();
-	}
-
-	private void Compact()
-	{
-		for (int32 i = 0; i < _numStales; ++i)
-		{
-			_weakInterfaceObserverMap.Remove(_stales[i], out _);
-		}
-		
-		_numStales = 0;
-	}
 
 	// This is pretty commonly used so create at startup.
 	private static EventLoop s_singleton = new();
 
 	// All codepaths that modify these containers have to acquire this lock.
 	private object _registryLock = new();
-	private Dictionary<EventLoopObserverHandle, IEventLoopObserver> _interfaceObserverMap = new();
-	private Dictionary<EventLoopObserverHandle, WeakReference<IEventLoopObserver>> _weakInterfaceObserverMap = new();
-	private Dictionary<EventLoopObserverHandle, (EEventLoopTickingGroup Type, EventLoopHandler Delegate)> _fullDelegateObserverMap = new();
-	private Dictionary<EventLoopObserverHandle, (EEventLoopTickingGroup Type, Action Delegate)> _simpleDelegateObserverMap = new();
-	private Dictionary<EventLoopObserverHandle, (EEventLoopTickingGroup Type, Action<float> Delegate)> _worldDeltaDelegateObserverMap = new();
-	
+	private Dictionary<EEventLoopTickingGroup, Dictionary<EventLoopObserverHandle, Rec>> _observerMap = new();
+
 	// All codepaths that access _currentHandle or any IEventLoopObserver's Handle property have to acquire this lock.
 	private ReaderWriterLockSlim _handleLock = new();
 	private uint64 _currentHandle;
@@ -402,6 +303,8 @@ internal class EventLoop : IEventLoop
 	
 	private double _worldAccumulatedTime;
 	private double _realAcccumulatedTime;
+
+	private record struct Rec(object? Observer, WeakReference? Lifecycle);
 
 }
 
