@@ -39,12 +39,29 @@ internal class EventLoop : IEventLoop
 		
 		if (UnrealEngineStatics.IsInGameThread() && _isNotifing)
 		{
+			// Unregister a deferred observer before the same time notify end.
 			if (_deferredRequestMap.Remove(observer))
 			{
 				return;
 			}
 			
-			_deferredRequestMap[observer] = () => { InternalUnregisterObserver(observer); };
+			foreach (var pair in _observerMap)
+			{
+				if (pair.Value.ContainsKey(observer))
+				{
+					if (pair.Key == _lockedGroup)
+					{
+						// Just mark as garbage because NotifyEvent() is iterating the registry
+						pair.Value[observer] = new();
+					}
+					else
+					{
+						pair.Value.Remove(observer);
+					}
+					
+					return;
+				}
+			}
 		}
 		else
 		{
@@ -59,6 +76,7 @@ internal class EventLoop : IEventLoop
 			try
 			{
 				_isNotifing = true;
+				_lockedGroup = group;
 				
 				_worldAccumulatedTime += worldDeltaTime;
 				_realAcccumulatedTime += realDeltaTime;
@@ -83,7 +101,8 @@ internal class EventLoop : IEventLoop
 						object? observer = null;
 						if (rec.Lifecycle is null)
 						{
-							// Need explicit unregister
+							// Case 1: observer is not null: Need explicit unregister
+							// Case 2: observer is null: Left garbage while unregister during notify.
 							observer = rec.Observer;
 						}
 						else if (rec.Observer is null)
@@ -300,6 +319,7 @@ internal class EventLoop : IEventLoop
 	// By the way, other threads will be blocked until NotifyEvent() returns so they have no problem.
 	private Dictionary<EventLoopObserverHandle, Action> _deferredRequestMap = new();
 	private bool _isNotifing;
+	private EEventLoopTickingGroup _lockedGroup;
 	
 	private double _worldAccumulatedTime;
 	private double _realAcccumulatedTime;
