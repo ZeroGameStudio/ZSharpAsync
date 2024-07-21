@@ -11,6 +11,7 @@ internal class EventLoop : IEventLoop
 
 	internal static EventLoop Get() => s_singleton;
 	internal static ITimerManager GetTimerManager() => null!;
+	internal static ITimerManager GetTimerManagerSlim() => null!;
 
 	public EventLoopObserverHandle RegisterObserver(IEventLoopObserver observer, object? lifecycle) => InternalRegisterObserver(observer.TickingGroup, observer, lifecycle);
 	public EventLoopObserverHandle RegisterObserver(EEventLoopTickingGroup group, EventLoopHandler observer, object? lifecycle) => InternalRegisterObserver(group, observer, lifecycle);
@@ -81,9 +82,12 @@ internal class EventLoop : IEventLoop
 			{
 				_isNotifing = true;
 				_lockedGroup = group;
-				
-				_worldAccumulatedTime += worldDeltaTime;
-				_realAcccumulatedTime += realDeltaTime;
+
+				if (group == EEventLoopTickingGroup.PreWorldTick)
+				{
+					_worldAccumulatedTime += worldDeltaTime;
+					_realAcccumulatedTime += realDeltaTime;
+				}
 		
 				EventLoopArgs args = new()
 				{
@@ -173,6 +177,17 @@ internal class EventLoop : IEventLoop
 						pair.Value.Invoke();
 					}
 					_deferredRequestMap.Clear();
+				}
+				
+				// Tick built-in timers
+				DateTime start = DateTime.Now;
+				GetTimerManager().Tick(worldDeltaTime);
+				double cost = (DateTime.Now - start).TotalMilliseconds;
+				double remain = _timerBudgetMs - cost;
+				if (remain > 0)
+				{
+					GetTimerManagerSlim().BudgetMsPerTick = remain;
+					GetTimerManagerSlim().Tick(worldDeltaTime);
 				}
 			}
 			finally
@@ -327,6 +342,8 @@ internal class EventLoop : IEventLoop
 	
 	private double _worldAccumulatedTime;
 	private double _realAcccumulatedTime;
+
+	private double _timerBudgetMs = 3.0;
 
 	private record struct Rec(object? Observer, WeakReference? Lifecycle);
 

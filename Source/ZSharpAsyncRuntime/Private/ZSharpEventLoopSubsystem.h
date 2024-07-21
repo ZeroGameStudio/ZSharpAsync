@@ -35,7 +35,7 @@ private:
 };
 
 UCLASS()
-class UZSharpEventLoopSubsystem : public UWorldSubsystem, public FTickableGameObject
+class UZSharpEventLoopSubsystem : public UWorldSubsystem
 {
 	GENERATED_BODY()
 
@@ -51,17 +51,10 @@ public:
 	
 	virtual bool DoesSupportWorldType(const EWorldType::Type worldType) const override;
 
-	// FTickableObjectBase interface
-	virtual bool IsAllowedToTick() const override { return !HasAnyFlags(RF_ClassDefaultObject | RF_ArchetypeObject); }
-	virtual void Tick(float DeltaTime) override;
-	virtual TStatId GetStatId() const override;
-
-	// FTickableGameObject interface
-	virtual UWorld* GetTickableGameObjectWorld() const override { return &GetWorldRef(); }
-
 private:
 	void HandleWorldDelegate(UWorld* world, ELevelTick, float, ZSharp::EZSharpEventLoopTickingGroup group);
 	void NotifyEvent(ZSharp::EZSharpEventLoopTickingGroup group);
+	void NotifyWorldTimerTick();
 
 private:
 	TUniquePtr<FZSharpEventLoopTickFunction> PrePhysicsTickFunction;

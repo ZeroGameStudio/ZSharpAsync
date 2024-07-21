@@ -11,7 +11,7 @@ namespace ZSharp
 		PrePhysicsTick,
 		DuringPhysicsTick,
 		PostPhysicsTick,
-		PostWorldTimerTick,
+		DuringWorldTimerTick,
 		PostUpdateTick,
 		PostActorTick,
 		PostWorldTick,

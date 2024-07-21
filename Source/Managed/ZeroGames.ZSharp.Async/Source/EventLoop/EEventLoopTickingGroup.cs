@@ -9,7 +9,7 @@ public enum EEventLoopTickingGroup : uint8
 	PrePhysicsTick,
 	DuringPhysicsTick,
 	PostPhysicsTick,
-	PostWorldTimerTick,
+	DuringWorldTimerTick,
 	PostUpdateTick,
 	PostActorTick,
 	PostWorldTick,

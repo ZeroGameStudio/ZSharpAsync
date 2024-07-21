@@ -4,5 +4,8 @@ namespace ZeroGames.ZSharp.Async.Timer;
 
 public interface ITimerManager
 {
-	
+	void Tick(float deltaTime);
+	double BudgetMsPerTick { get; set; }
 }
+
+

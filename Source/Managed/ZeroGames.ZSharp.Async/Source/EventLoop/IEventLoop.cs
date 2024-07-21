@@ -10,6 +10,7 @@ public interface IEventLoop
 {
 	public static IEventLoop Get() => EventLoop.Get();
 	public static ITimerManager GetTimerManager() => EventLoop.GetTimerManager();
+	public static ITimerManager GetTimerManagerSlim() => EventLoop.GetTimerManagerSlim();
 	EventLoopObserverHandle RegisterObserver(IEventLoopObserver observer, object? lifecycle);
 	EventLoopObserverHandle RegisterObserver(EEventLoopTickingGroup group, EventLoopHandler observer, object? lifecycle);
 	EventLoopObserverHandle RegisterObserver(EEventLoopTickingGroup group, Action observer, object? lifecycle);
