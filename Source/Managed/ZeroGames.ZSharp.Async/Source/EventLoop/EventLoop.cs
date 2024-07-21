@@ -1,5 +1,7 @@
 ﻿// Copyright Zero Games. All Rights Reserved.
 
+using System.Threading;
+
 namespace ZeroGames.ZSharp.Async.EventLoop;
 
 // WARNING: This class contains complex concurrent logic so do NOT modify if you don't know what you are doing!
