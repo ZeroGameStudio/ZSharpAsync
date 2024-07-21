@@ -5,9 +5,9 @@ namespace ZeroGames.ZSharp.Async.Timer;
 public interface ITimerManager
 {
 	TimerHandle Add(Action action, object? lifecycle);
-	TimerHandle Add(Action<object?> action, object? state, object? lifecycle);
+	TimerHandle Add<T>(Action<T> action, T state, object? lifecycle);
 	TimerHandle Add(Action<float> action, object? lifecycle);
-	TimerHandle Add(Action<float, object?> action, object? state, object? lifecycle);
+	TimerHandle Add<T>(Action<float, T> action, T state, object? lifecycle);
 	void Remove(TimerHandle timer);
 	void RemoveAllForLifecycle(object lifecycle);
 	void Suspend(TimerHandle timer);

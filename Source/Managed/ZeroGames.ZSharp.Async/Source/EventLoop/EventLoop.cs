@@ -1,5 +1,6 @@
 ﻿// Copyright Zero Games. All Rights Reserved.
 
+using System.Runtime.CompilerServices;
 using System.Threading;
 using ZeroGames.ZSharp.Async.Timer;
 
@@ -13,11 +14,14 @@ internal class EventLoop : IEventLoop
 	internal static ITimerManager GetTimerManager() => null!;
 	internal static ITimerManager GetTimerManagerSlim() => null!;
 
-	public EventLoopObserverHandle RegisterObserver(IEventLoopObserver observer, object? lifecycle) => InternalRegisterObserver(observer.TickingGroup, observer, lifecycle);
-	public EventLoopObserverHandle RegisterObserver(EEventLoopTickingGroup group, EventLoopHandler observer, object? lifecycle) => InternalRegisterObserver(group, observer, lifecycle);
-	public EventLoopObserverHandle RegisterObserver(EEventLoopTickingGroup group, Action observer, object? lifecycle) => InternalRegisterObserver(group, observer, lifecycle);
-	public EventLoopObserverHandle RegisterObserver(EEventLoopTickingGroup group, Action<float> observer, object? lifecycle) => InternalRegisterObserver(group, observer, lifecycle);
-
+	public EventLoopObserverHandle RegisterObserver(IEventLoopObserver observer, object? lifecycle) => InternalRegisterObserver(observer.TickingGroup, observer, ObserverType.Interface, false, null, lifecycle);
+	public EventLoopObserverHandle RegisterObserver(EEventLoopTickingGroup group, EventLoopHandler observer, object? lifecycle) => InternalRegisterObserver(group, observer, ObserverType.Handler, false, null, lifecycle);
+	public EventLoopObserverHandle RegisterObserver<T>(EEventLoopTickingGroup group, EventLoopHandler<T> observer, T state, object? lifecycle) => InternalRegisterObserver(group, observer, ObserverType.Handler, true, state, lifecycle);
+	public EventLoopObserverHandle RegisterObserver(EEventLoopTickingGroup group, Action observer, object? lifecycle) => InternalRegisterObserver(group, observer, ObserverType.Action, false, null, lifecycle);
+	public EventLoopObserverHandle RegisterObserver<T>(EEventLoopTickingGroup group, Action<T> observer, T state, object? lifecycle) => InternalRegisterObserver(group, observer, ObserverType.Action, true, state, lifecycle);
+	public EventLoopObserverHandle RegisterObserver(EEventLoopTickingGroup group, Action<float> observer, object? lifecycle) => InternalRegisterObserver(group, observer, ObserverType.FloatAction, false, null, lifecycle);
+	public EventLoopObserverHandle RegisterObserver<T>(EEventLoopTickingGroup group, Action<float, T> observer, T state, object? lifecycle) => InternalRegisterObserver(group, observer, ObserverType.FloatAction, true, state, lifecycle);
+	
 	public void UnregisterObserver(IEventLoopObserver observer)
 	{
 		EventLoopObserverHandle handle;
@@ -133,21 +137,75 @@ internal class EventLoop : IEventLoop
 							mayHaveSideEffects = true;
 							try
 							{
-								if (observer is Action<float> floatAction)
+								switch (rec.Type)
 								{
-									floatAction.Invoke(worldDeltaTime);
-								}
-								else if (observer is Action action)
-								{
-									action.Invoke();
-								}
-								else if (observer is EventLoopHandler handler)
-								{
-									handler.Invoke(args);
-								}
-								else if (observer is IEventLoopObserver typedObserver)
-								{
-									typedObserver.NotifyEvent(args);
+									case ObserverType.Interface:
+									{
+										Unsafe.As<IEventLoopObserver>(observer).NotifyEvent(args);
+										break;
+									}
+									case ObserverType.Action:
+									{
+										if (rec.HasState)
+										{
+											if (observer is Action<object?> action)
+											{
+												action.Invoke(rec.State);
+											}
+											else
+											{
+												_reusedStateActionParams[0] = rec.State;
+												Unsafe.As<Delegate>(observer).DynamicInvoke(_reusedStateActionParams);
+											}
+										}
+										else
+										{
+											Unsafe.As<Action>(observer).Invoke();
+										}
+										break;
+									}
+									case ObserverType.FloatAction:
+									{
+										if (rec.HasState)
+										{
+											if (observer is Action<float, object?> action)
+											{
+												action.Invoke(worldDeltaTime, rec.State);
+											}
+											else
+											{
+												_reusedFloatStateActionParams[0] = worldDeltaTime;
+												_reusedFloatStateActionParams[1] = rec.State;
+												Unsafe.As<Delegate>(observer).DynamicInvoke(_reusedFloatStateActionParams);
+											}
+										}
+										else
+										{
+											Unsafe.As<Action<float>>(observer).Invoke(worldDeltaTime);
+										}
+										break;
+									}
+									case ObserverType.Handler:
+									{
+										if (rec.HasState)
+										{
+											if (observer is EventLoopHandler<object?> handler)
+											{
+												handler.Invoke(args, rec.State);
+											}
+											else
+											{
+												_reusedStateHandlerParams[0] = args;
+												_reusedStateHandlerParams[1] = rec.State;
+												Unsafe.As<Delegate>(observer).DynamicInvoke(_reusedStateHandlerParams);
+											}
+										}
+										else
+										{
+											Unsafe.As<EventLoopHandler>(observer).Invoke(args);
+										}
+										break;
+									}
 								}
 							}
 							catch (Exception ex)
@@ -200,23 +258,23 @@ internal class EventLoop : IEventLoop
 		}
 	}
 
-	private EventLoopObserverHandle InternalRegisterObserver(EEventLoopTickingGroup group, object observer, object? lifecycle)
+	private EventLoopObserverHandle InternalRegisterObserver(EEventLoopTickingGroup group, object observer, ObserverType type, bool hasState, object? state, object? lifecycle)
 	{
 		EventLoopObserverHandle handle = AllocateHandle();
 
 		if (UnrealEngineStatics.IsInGameThread() && _isNotifing)
 		{
-			_deferredRequestMap[handle] = () => { ActualRegisterObserver(group, handle, observer, lifecycle); };
+			_deferredRequestMap[handle] = () => { ActualRegisterObserver(group, handle, observer, type, hasState, state, lifecycle); };
 		}
 		else
 		{
-			ActualRegisterObserver(group, handle, observer, lifecycle);
+			ActualRegisterObserver(group, handle, observer, type, hasState, state, lifecycle);
 		}
 		
 		return handle;
 	}
 
-	private void ActualRegisterObserver(EEventLoopTickingGroup group, EventLoopObserverHandle handle, object observer, object? lifecycle)
+	private void ActualRegisterObserver(EEventLoopTickingGroup group, EventLoopObserverHandle handle, object observer, ObserverType type, bool hasState, object? state, object? lifecycle)
 	{
 		lock (_registryLock)
 		{
@@ -249,7 +307,7 @@ internal class EventLoop : IEventLoop
 				lifecycleRec = new(lifecycle);
 			}
 
-			registry[handle] = new(observerRec, lifecycleRec);
+			registry[handle] = new(observerRec, type, hasState, state, lifecycleRec);
 		}
 	}
 	
@@ -342,13 +400,25 @@ internal class EventLoop : IEventLoop
 	private Dictionary<EventLoopObserverHandle, Action> _deferredRequestMap = new();
 	private bool _isNotifing;
 	private EEventLoopTickingGroup _lockedGroup;
+
+	private object?[] _reusedStateActionParams = new object[1];
+	private object?[] _reusedFloatStateActionParams = new object[2];
+	private object?[] _reusedStateHandlerParams = new object[2];
 	
 	private double _worldAccumulatedTime;
 	private double _realAcccumulatedTime;
 
 	private double _timerBudgetMs = 3.0;
 
-	private record struct Rec(object? Observer, WeakReference? Lifecycle);
+	private enum ObserverType
+	{
+		Interface,
+		Action,
+		FloatAction,
+		Handler,
+	}
+
+	private record struct Rec(object? Observer, ObserverType Type, bool HasState, object? State, WeakReference? Lifecycle);
 
 }
 
