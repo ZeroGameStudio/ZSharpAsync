@@ -161,6 +161,20 @@ internal class EventLoop : IEventLoop
 						}
 					}
 				}
+
+				if (group == EEventLoopTickingGroup.DuringWorldTimerTick)
+				{
+					// Tick built-in timers
+					DateTime start = DateTime.Now;
+					GetTimerManager().Tick(worldDeltaTime);
+					double cost = (DateTime.Now - start).TotalMilliseconds;
+					double remain = _timerBudgetMs - cost;
+					if (remain > 0)
+					{
+						GetTimerManagerSlim().BudgetMsPerTick = remain;
+						GetTimerManagerSlim().Tick(worldDeltaTime);
+					}
+				}
 				
 				// Compact
 				for (int32 i = 0; i < _numStales; ++i)
@@ -177,17 +191,6 @@ internal class EventLoop : IEventLoop
 						pair.Value.Invoke();
 					}
 					_deferredRequestMap.Clear();
-				}
-				
-				// Tick built-in timers
-				DateTime start = DateTime.Now;
-				GetTimerManager().Tick(worldDeltaTime);
-				double cost = (DateTime.Now - start).TotalMilliseconds;
-				double remain = _timerBudgetMs - cost;
-				if (remain > 0)
-				{
-					GetTimerManagerSlim().BudgetMsPerTick = remain;
-					GetTimerManagerSlim().Tick(worldDeltaTime);
 				}
 			}
 			finally
