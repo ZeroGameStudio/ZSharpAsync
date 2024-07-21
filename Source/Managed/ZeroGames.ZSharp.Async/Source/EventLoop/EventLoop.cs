@@ -149,7 +149,7 @@ internal class EventLoop : IEventLoop
 								Logger.Error($"Unhandled Exception Detected in Event Loop.\n{ex}");
 							}
 						}
-						else
+						else if (_numStales < _stales.Length)
 						{
 							_stales[_numStales++] = pair.Key;
 						}
