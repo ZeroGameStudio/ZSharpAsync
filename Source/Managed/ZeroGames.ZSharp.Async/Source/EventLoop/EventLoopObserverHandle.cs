@@ -1,6 +1,6 @@
 ﻿// Copyright Zero Games. All Rights Reserved.
 
-namespace ZeroGames.ZSharp.Async;
+namespace ZeroGames.ZSharp.Async.EventLoop;
 
 public readonly struct EventLoopObserverHandle()
 {

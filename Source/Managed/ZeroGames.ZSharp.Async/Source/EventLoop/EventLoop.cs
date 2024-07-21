@@ -1,14 +1,16 @@
 ﻿// Copyright Zero Games. All Rights Reserved.
 
 using System.Threading;
+using ZeroGames.ZSharp.Async.Timer;
 
-namespace ZeroGames.ZSharp.Async;
+namespace ZeroGames.ZSharp.Async.EventLoop;
 
 // WARNING: This class contains complex concurrent logic so do NOT modify if you don't know what you are doing!
 internal class EventLoop : IEventLoop
 {
 
 	internal static EventLoop Get() => s_singleton;
+	internal static ITimerManager GetTimerManager() => null!;
 
 	public EventLoopObserverHandle RegisterObserver(IEventLoopObserver observer, object? lifecycle) => InternalRegisterObserver(observer.TickingGroup, observer, lifecycle);
 	public EventLoopObserverHandle RegisterObserver(EEventLoopTickingGroup group, EventLoopHandler observer, object? lifecycle) => InternalRegisterObserver(group, observer, lifecycle);
