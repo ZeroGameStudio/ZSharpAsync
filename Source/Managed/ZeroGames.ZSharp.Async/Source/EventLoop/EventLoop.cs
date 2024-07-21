@@ -2,7 +2,7 @@
 
 using System.Threading;
 
-namespace ZeroGames.ZSharp.Async.EventLoop;
+namespace ZeroGames.ZSharp.Async;
 
 // WARNING: This class contains complex concurrent logic so do NOT modify if you don't know what you are doing!
 internal class EventLoop : IEventLoop
