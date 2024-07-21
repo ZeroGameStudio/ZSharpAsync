@@ -11,8 +11,9 @@ internal class EventLoop : IEventLoop
 {
 
 	internal static EventLoop Get() => s_singleton;
-	internal static ITimerManager GetTimerManager() => null!;
-	internal static ITimerManager GetTimerManagerSlim() => null!;
+	
+	public ITimerManager GetTimerManager() => null!;
+	public ITimerManager GetTimerManagerSlim() => null!;
 
 	public EventLoopObserverHandle RegisterObserver(IEventLoopObserver observer, object? lifecycle) => InternalRegisterObserver(observer.TickingGroup, observer, ObserverType.Interface, false, null, lifecycle);
 	public EventLoopObserverHandle RegisterObserver(EEventLoopTickingGroup group, EventLoopHandler observer, object? lifecycle) => InternalRegisterObserver(group, observer, ObserverType.Handler, false, null, lifecycle);
