@@ -50,8 +50,9 @@ internal class EventLoop : IEventLoop
 		if (UnrealEngineStatics.IsInGameThread() && _isNotifing)
 		{
 			// Unregister a deferred observer before the same time notify end.
-			if (_deferredRequestMap.Remove(observer))
+			if (_deferredRequestMap.Remove(observer, out var rec))
 			{
+				ClearHandleForObserver(rec.Observer);
 				return;
 			}
 			
@@ -59,15 +60,10 @@ internal class EventLoop : IEventLoop
 			{
 				if (pair.Value.ContainsKey(observer))
 				{
-					if (pair.Key == _lockedGroup)
-					{
-						// Just mark as garbage because NotifyEvent() is iterating the registry
-						pair.Value[observer] = new();
-					}
-					else
-					{
-						pair.Value.Remove(observer);
-					}
+					ClearHandleForObserver(pair.Value[observer].Observer);
+					
+					// Just mark as garbage because NotifyEvent() is iterating the registry
+					pair.Value[observer] = new();
 					
 					return;
 				}
@@ -75,7 +71,71 @@ internal class EventLoop : IEventLoop
 		}
 		else
 		{
-			InternalUnregisterObserver(observer);
+			lock (_registryLock)
+			{
+				foreach (var pair in _observerMap)
+				{
+					if (pair.Value.Remove(observer, out var rec))
+					{
+						ClearHandleForObserver(rec.Observer);
+						return;
+					}
+				}
+			}
+		}
+	}
+
+	public void UnregisterAll(object lifecycle)
+	{
+		
+		if (UnrealEngineStatics.IsInGameThread() && _isNotifing)
+		{
+			_reusedUnregisterAllPendingRemoves.Clear();
+			foreach (var pair in _deferredRequestMap)
+			{
+				if (ReferenceEquals(pair.Value.Lifecycle, lifecycle))
+				{
+					_reusedUnregisterAllPendingRemoves.Add(pair.Key);
+				}
+			}
+			foreach (var handle in _reusedUnregisterAllPendingRemoves)
+			{
+				_deferredRequestMap.Remove(handle, out var rec);
+				ClearHandleForObserver(rec.Observer);
+			}
+			
+			foreach (var pair in _observerMap)
+			{
+				foreach (var innerPair in pair.Value)
+				{
+					if (ReferenceEquals(innerPair.Value.Lifecycle, lifecycle))
+					{
+						pair.Value[innerPair.Key] = new();
+					}
+				}
+			}
+		}
+		else
+		{
+			lock (_registryLock)
+			{
+				foreach (var pair in _observerMap)
+				{
+					_reusedUnregisterAllPendingRemoves.Clear();
+					foreach (var innerPair in pair.Value)
+					{
+						if (ReferenceEquals(innerPair.Value.Lifecycle, lifecycle))
+						{
+							_reusedUnregisterAllPendingRemoves.Add(innerPair.Key);
+						}
+					}
+					foreach (var handle in _reusedUnregisterAllPendingRemoves)
+					{
+						pair.Value.Remove(handle, out var rec);
+						ClearHandleForObserver(rec.Observer);
+					}
+				}
+			}
 		}
 	}
 
@@ -86,7 +146,6 @@ internal class EventLoop : IEventLoop
 			try
 			{
 				_isNotifing = true;
-				_lockedGroup = group;
 
 				if (group == EEventLoopTickingGroup.PreWorldTick)
 				{
@@ -247,7 +306,7 @@ internal class EventLoop : IEventLoop
 				{
 					foreach (var pair in _deferredRequestMap)
 					{
-						pair.Value.Invoke();
+						pair.Value.Request.Invoke();
 					}
 					_deferredRequestMap.Clear();
 				}
@@ -261,11 +320,11 @@ internal class EventLoop : IEventLoop
 
 	private EventLoopObserverHandle InternalRegisterObserver(EEventLoopTickingGroup group, object observer, ObserverType type, bool hasState, object? state, object? lifecycle)
 	{
-		EventLoopObserverHandle handle = AllocateHandle();
+		EventLoopObserverHandle handle = AllocateHandleForObserver(observer);
 
 		if (UnrealEngineStatics.IsInGameThread() && _isNotifing)
 		{
-			_deferredRequestMap[handle] = () => { ActualRegisterObserver(group, handle, observer, type, hasState, state, lifecycle); };
+			_deferredRequestMap[handle] = (() => { ActualRegisterObserver(group, handle, observer, type, hasState, state, lifecycle); }, observer, lifecycle);
 		}
 		else
 		{
@@ -311,53 +370,24 @@ internal class EventLoop : IEventLoop
 			registry[handle] = new(observerRec, type, hasState, state, lifecycleRec);
 		}
 	}
-	
-	private void InternalUnregisterObserver(EventLoopObserverHandle observer)
-	{
-		lock (_registryLock)
-		{
-			foreach (var pair in _observerMap)
-			{
-				if (pair.Value.Remove(observer, out var rec))
-				{
-					if (rec.Observer is IEventLoopObserver typedObserver)
-					{
-						typedObserver.Handle = default;
-					}
 
-					return;
-				}
-			}
-		}
-	}
-
-	private EventLoopObserverHandle AllocateHandle()
+	private EventLoopObserverHandle AllocateHandleForObserver(object observer)
 	{
 		try
 		{
 			_handleLock.EnterWriteLock();
 			
-			return new(++_currentHandle);
-		}
-		finally
-		{
-			_handleLock.ExitWriteLock();
-		}
-	}
-
-	private EventLoopObserverHandle AllocateHandleForObserver(IEventLoopObserver observer)
-	{
-		try
-		{
-			_handleLock.EnterWriteLock();
-			
-			if (observer.Handle.IsValid)
+			IEventLoopObserver? typedObserver = observer as IEventLoopObserver;
+			if (typedObserver?.Handle.IsValid ?? false)
 			{
 				throw new InvalidOperationException();
 			}
 		
 			EventLoopObserverHandle handle = new(++_currentHandle);
-			observer.Handle = handle;
+			if (typedObserver is not null)
+			{
+				typedObserver.Handle = handle;
+			}
 
 			return handle;
 		}
@@ -367,13 +397,18 @@ internal class EventLoop : IEventLoop
 		}
 	}
 
-	private void ClearHandleForObserver(IEventLoopObserver observer)
+	private void ClearHandleForObserver(object? observer)
 	{
+		if (observer is not IEventLoopObserver typedObserver)
+		{
+			return;
+		}
+		
 		try
 		{
 			_handleLock.EnterWriteLock();
 			
-			observer.Handle = default;
+			typedObserver.Handle = default;
 		}
 		finally
 		{
@@ -388,6 +423,8 @@ internal class EventLoop : IEventLoop
 	private object _registryLock = new();
 	private Dictionary<EEventLoopTickingGroup, Dictionary<EventLoopObserverHandle, Rec>> _observerMap = new();
 
+	private List<EventLoopObserverHandle> _reusedUnregisterAllPendingRemoves = new(4);
+
 	// All codepaths that access _currentHandle or any IEventLoopObserver's Handle property have to acquire this lock.
 	private ReaderWriterLockSlim _handleLock = new();
 	private uint64 _currentHandle;
@@ -398,9 +435,8 @@ internal class EventLoop : IEventLoop
 	
 	// These two are only used by GameThread to detect register/unregister during NotifyEvent().
 	// By the way, other threads will be blocked until NotifyEvent() returns so they have no problem.
-	private Dictionary<EventLoopObserverHandle, Action> _deferredRequestMap = new();
+	private Dictionary<EventLoopObserverHandle, (Action Request, object Observer, object? Lifecycle)> _deferredRequestMap = new();
 	private bool _isNotifing;
-	private EEventLoopTickingGroup _lockedGroup;
 
 	private object?[] _reusedStateActionParams = new object[1];
 	private object?[] _reusedFloatStateActionParams = new object[2];

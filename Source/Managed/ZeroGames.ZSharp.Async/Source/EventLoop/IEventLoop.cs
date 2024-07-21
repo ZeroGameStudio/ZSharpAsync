@@ -27,6 +27,7 @@ public interface IEventLoop
 	
 	void UnregisterObserver(IEventLoopObserver observer);
 	void UnregisterObserver(EventLoopObserverHandle observer);
+	void UnregisterAll(object lifecycle);
 }
 
 

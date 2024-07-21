@@ -10,13 +10,13 @@ public interface ITimerManager
 	TimerHandle Add<T>(Action<float, T> action, T state, object? lifecycle);
 	
 	void Remove(TimerHandle timer);
-	void RemoveAllForLifecycle(object lifecycle);
+	void RemoveAll(object lifecycle);
 	
 	void Suspend(TimerHandle timer);
-	void SuspendAllForLifecycle(object lifecycle);
+	void SuspendAll(object lifecycle);
 	
 	void Resume(TimerHandle timer);
-	void ResumeAllForLifecycle(object lifecycle);
+	void ResumeAll(object lifecycle);
 	
 	void Tick(float deltaTime);
 	
