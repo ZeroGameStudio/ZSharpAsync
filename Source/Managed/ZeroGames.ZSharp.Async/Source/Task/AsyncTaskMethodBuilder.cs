@@ -4,11 +4,11 @@ using System.Runtime.CompilerServices;
 
 namespace ZeroGames.ZSharp.Async.Task;
 
-internal struct AsyncTaskMethodBuilder : IAsyncMethodBuilderVoid<AsyncTaskMethodBuilder, Task, Task.Awaiter>
+public struct AsyncTaskMethodBuilder : IAsyncMethodBuilderVoid<AsyncTaskMethodBuilder, Task, Task.Awaiter>
 {
 
 	public static AsyncTaskMethodBuilder Create() => default;
-
+	
 	public void Start<TStateMachine>(ref TStateMachine stateMachine) where TStateMachine : IAsyncStateMachine => stateMachine.MoveNext();
 
 	public void AwaitOnCompleted<TAwaiter, TStateMachine>(ref TAwaiter awaiter, ref TStateMachine stateMachine) where TAwaiter : INotifyCompletion where TStateMachine : IAsyncStateMachine
