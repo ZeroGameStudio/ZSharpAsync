@@ -8,6 +8,8 @@ public struct AsyncTaskMethodBuilder : IAsyncMethodBuilderVoid<AsyncTaskMethodBu
 {
 
 	public static AsyncTaskMethodBuilder Create() => default;
+
+	public void SetStateMachine(IAsyncStateMachine stateMachine) => throw new NotSupportedException();
 	
 	public void Start<TStateMachine>(ref TStateMachine stateMachine) where TStateMachine : IAsyncStateMachine => stateMachine.MoveNext();
 
