@@ -7,51 +7,40 @@ internal class StateMachineTask : IPoolableUnderlyingTaskVoid<StateMachineTask>
 
 	public static StateMachineTask GetFromPool() => _pool.Pop();
 
-	public StateMachineTask()
+	public static StateMachineTask Create()
 	{
-		Task = Task.FromUnderlyingTask(this, 0);
+		StateMachineTask task = new();
+		task.Initialize();
+		return task;
 	}
 	
-	public void Initialize()
-	{
-		throw new NotImplementedException();
-	}
+	public void Initialize() => _comp.Initialize();
 
 	public void Deinitialize()
 	{
-		throw new NotImplementedException();
+		_comp.Deinitialize();
+		Task = Task.FromUnderlyingTask(this, Token);
 	}
 
-	public EUnderlyingTaskStatus GetStatus(uint64 token)
-	{
-		throw new NotImplementedException();
-	}
+	public EUnderlyingTaskStatus GetStatus(uint64 token) => _comp.GetStatus(token);
 
-	public void OnCompleted(Action continuation, uint64 token)
-	{
-		throw new NotImplementedException();
-	}
+	public void SetContinuation(Action continuation, uint64 token) => _comp.SetContinuation(continuation, token);
 
-	public void GetResult(uint64 token)
-	{
-		throw new NotImplementedException();
-	}
+	public void GetResult(uint64 token) => _comp.GetResult(token);
+
+	public void SetResult() => _comp.SetResult();
+
+	public void SetException(Exception exception) => _comp.SetException(exception);
 	
-	public void SetResult()
-	{
-		
-	}
-
-	public void SetException(Exception exception)
-	{
-		
-	}
+	public uint64 Token => _comp.Token;
 	
 	public StateMachineTask? PoolNext { get; set; }
 	
-	public Task Task { get; }
+	public Task Task { get; private set; }
 
-	private static UnderlyingTaskPool<StateMachineTask> _pool;
+	private static readonly UnderlyingTaskPool<StateMachineTask> _pool = new();
+
+	private PoolableUnderlyingTaskComponentVoid _comp;
 
 }
 

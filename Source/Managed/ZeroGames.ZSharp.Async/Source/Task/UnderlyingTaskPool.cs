@@ -2,42 +2,47 @@
 
 namespace ZeroGames.ZSharp.Async.Task;
 
-public struct UnderlyingTaskPool<T> where T : class, IPoolableUnderlyingTask<T>, new()
+public class UnderlyingTaskPool<T> where T : class, IPoolableUnderlyingTask<T>
 {
-
+	
 	public T Pop()
 	{
-		T task;
-		if (_head is null)
+		lock (_lock)
 		{
-			task = new();
+			if (_head is null)
+			{
+				return T.Create();
+			}
+			else
+			{
+				T task = _head;
+				task.Initialize();
+				_head = task.PoolNext;
+				return task;
+			}
 		}
-		else
-		{
-			task = _head;
-			_head = task.PoolNext;
-		}
-
-		task.Initialize();
-		return task;
 	}
 
 	public void Push(T task)
 	{
-		task.Deinitialize();
+		lock (_lock)
+		{
+			task.Deinitialize();
 		
-		if (_head is null)
-		{
-			_head = task;
-		}
-		else
-		{
-			task.PoolNext = _head;
-			_head = task;
+			if (_head is null)
+			{
+				_head = task;
+			}
+			else
+			{
+				task.PoolNext = _head;
+				_head = task;
+			}
 		}
 	}
 
 	private T? _head;
+	private readonly object _lock = new();
 
 }
 

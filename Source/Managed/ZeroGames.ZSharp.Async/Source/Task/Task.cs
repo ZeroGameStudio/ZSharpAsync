@@ -1,28 +1,25 @@
 ﻿// Copyright Zero Games. All Rights Reserved.
 
 using System.Runtime.CompilerServices;
+using System.Runtime.ExceptionServices;
 
 namespace ZeroGames.ZSharp.Async.Task;
 
 [AsyncMethodBuilder(typeof(AsyncTaskMethodBuilder))]
-public readonly struct Task : ITask, IAwaitableVoid<Task.Awaiter>, IEquatable<Task>
+public readonly partial struct Task : ITask, IAwaitableVoid<Task.Awaiter>, IEquatable<Task>
 {
-
-	public static Task FromUnderlyingTask(IUnderlyingTaskVoid? task, uint64 token) => new(task, token);
-	public static Task FromResult() => default;
-	public static Task FromException(Exception exception) => new(exception);
 
 	public Awaiter GetAwaiter() => new(this);
 
-	public bool Equals(Task other) => _underlyingTask == other._underlyingTask && _token == other._token && _exception == other._exception;
+	public bool Equals(Task other) => _underlyingTask == other._underlyingTask && _token == other._token && _error == other._error;
 	public override bool Equals(object? obj) => obj is Task other && Equals(other);
-	public override int32 GetHashCode() => _underlyingTask?.GetHashCode() ?? _exception?.GetHashCode() ?? 0;
+	public override int32 GetHashCode() => _underlyingTask?.GetHashCode() ?? _error?.GetHashCode() ?? 0;
 	public static bool operator ==(Task lhs, Task rhs) => lhs.Equals(rhs);
 	public static bool operator !=(Task lhs, Task rhs) => !lhs.Equals(rhs);
 
 	public bool IsCompleted => _underlyingTask is null || _underlyingTask.GetStatus(_token) != EUnderlyingTaskStatus.Pending;
 
-	private Task(Exception exception) => _exception = exception;
+	private Task(Exception exception) => _error = ExceptionDispatchInfo.Capture(exception);
 
 	private Task(IUnderlyingTaskVoid? task, uint64 token)
 	{
@@ -46,13 +43,13 @@ public readonly struct Task : ITask, IAwaitableVoid<Task.Awaiter>, IEquatable<Ta
 		}
 		else
 		{
-			_underlyingTask.OnCompleted(continuation, _token);
+			_underlyingTask.SetContinuation(continuation, _token);
 		}
 	}
 	
 	private readonly IUnderlyingTaskVoid? _underlyingTask;
 	private readonly uint64 _token;
-	private readonly Exception? _exception;
+	private readonly ExceptionDispatchInfo? _error;
 	
 	public readonly struct Awaiter(Task _task) : IAwaiterVoid
 	{
