@@ -2,7 +2,7 @@
 
 using System.Runtime.CompilerServices;
 
-namespace ZeroGames.ZSharp.Async.Task;
+namespace ZeroGames.ZSharp.Async.ZeroTask;
 
 // These exist only for ensuring that the implement class matches specific pattern.
 internal interface IAwaiter : ICriticalNotifyCompletion

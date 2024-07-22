@@ -1,8 +1,8 @@
 ﻿// Copyright Zero Games. All Rights Reserved.
 
-namespace ZeroGames.ZSharp.Async.Task;
+namespace ZeroGames.ZSharp.Async.ZeroTask;
 
-public enum EUnderlyingTaskStatus
+public enum EUnderlyingZeroTaskStatus
 {
 	/// <summary>The operation has not yet completed.</summary>
 	Pending,

@@ -2,12 +2,12 @@
 
 using System.Runtime.CompilerServices;
 
-namespace ZeroGames.ZSharp.Async.Task;
+namespace ZeroGames.ZSharp.Async.ZeroTask;
 
-public struct AsyncTaskMethodBuilder : IAsyncMethodBuilderVoid<AsyncTaskMethodBuilder, Task, Task.Awaiter>
+public struct AsyncZeroTaskMethodBuilderVoid : IAsyncMethodBuilderVoid<AsyncZeroTaskMethodBuilderVoid, ZeroTask, ZeroTask.Awaiter>
 {
 
-	public static AsyncTaskMethodBuilder Create() => default;
+	public static AsyncZeroTaskMethodBuilderVoid Create() => default;
 
 	public void SetStateMachine(IAsyncStateMachine stateMachine) => throw new NotSupportedException();
 	
@@ -17,7 +17,7 @@ public struct AsyncTaskMethodBuilder : IAsyncMethodBuilderVoid<AsyncTaskMethodBu
 	{
 		if (_task is null)
 		{
-			_task = StateMachineTask.GetFromPool();
+			_task = UnderlyingZeroTask_AsyncStateMachine.GetFromPool();
 		}
 
 		TStateMachine copy = stateMachine;
@@ -28,7 +28,7 @@ public struct AsyncTaskMethodBuilder : IAsyncMethodBuilderVoid<AsyncTaskMethodBu
 	{
 		if (_task is null)
 		{
-			_task = StateMachineTask.GetFromPool();
+			_task = UnderlyingZeroTask_AsyncStateMachine.GetFromPool();
 		}
 		
 		TStateMachine copy = stateMachine;
@@ -55,7 +55,7 @@ public struct AsyncTaskMethodBuilder : IAsyncMethodBuilderVoid<AsyncTaskMethodBu
 		}
 	}
 
-	public Task Task
+	public ZeroTask Task
 	{
 		get
 		{
@@ -65,16 +65,16 @@ public struct AsyncTaskMethodBuilder : IAsyncMethodBuilderVoid<AsyncTaskMethodBu
 			}
 			else if (_exception is not null)
 			{
-				return Task.FromException(_exception);
+				return ZeroTask.FromException(_exception);
 			}
 			else
 			{
-				return Task.FromResult();
+				return ZeroTask.FromResult();
 			}
 		}
 	}
 
-	private StateMachineTask? _task;
+	private UnderlyingZeroTask_AsyncStateMachine? _task;
 	private Exception? _exception;
 
 }

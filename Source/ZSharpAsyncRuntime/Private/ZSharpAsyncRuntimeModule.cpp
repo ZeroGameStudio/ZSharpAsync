@@ -35,6 +35,7 @@ void FZSharpAsyncRuntimeModule::StartupModule()
 	ZSharp::IZSharpClr::Get().RegisterMasterAlcLoadFrameworks(ZSharp::FZOnMasterAlcLoadFrameworks::FDelegate::CreateLambda([](ZSharp::IZMasterAssemblyLoadContext* alc)
 	{
 		alc->LoadAssembly(FPaths::Combine(FPaths::ProjectDir(), "Binaries", "Managed", "ZeroGames.ZSharp.Async.dll"), &args);
+		alc->LoadAssembly(FPaths::Combine(FPaths::ProjectDir(), "Binaries", "Managed", "ZeroGames.ZSharp.Async.ZeroTask.dll"));
 	}));
 }
 

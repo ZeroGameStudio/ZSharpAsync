@@ -2,13 +2,13 @@
 
 using System.Runtime.ExceptionServices;
 
-namespace ZeroGames.ZSharp.Async.Task;
+namespace ZeroGames.ZSharp.Async.ZeroTask;
 
 /// <summary>
 /// Encapsulates generic logic for a poolable underlying task.
 /// Similar to ManualResetValueTaskSourceCore.
 /// </summary>
-public struct PoolableUnderlyingTaskComponentVoid
+public struct PoolableUnderlyingZeroTaskComponentVoid
 {
 
 	public void Initialize()
@@ -26,21 +26,21 @@ public struct PoolableUnderlyingTaskComponentVoid
 		_error = null;
 	}
 
-	public EUnderlyingTaskStatus GetStatus(uint64 token)
+	public EUnderlyingZeroTaskStatus GetStatus(uint64 token)
 	{
 		ValidateToken(token);
 
 		if (_continuation is null || !_isCompleted)
 		{
-			return EUnderlyingTaskStatus.Pending;
+			return EUnderlyingZeroTaskStatus.Pending;
 		}
 
 		if (_error is null)
 		{
-			return EUnderlyingTaskStatus.Succeeded;
+			return EUnderlyingZeroTaskStatus.Succeeded;
 		}
 
-		return _error.SourceException is OperationCanceledException ? EUnderlyingTaskStatus.Canceled : EUnderlyingTaskStatus.Faulted;
+		return _error.SourceException is OperationCanceledException ? EUnderlyingZeroTaskStatus.Canceled : EUnderlyingZeroTaskStatus.Faulted;
 	}
 
 	public void GetResult(uint64 token)

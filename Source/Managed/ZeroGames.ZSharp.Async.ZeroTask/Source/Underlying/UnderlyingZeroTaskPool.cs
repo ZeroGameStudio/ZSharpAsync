@@ -1,8 +1,8 @@
 ﻿// Copyright Zero Games. All Rights Reserved.
 
-namespace ZeroGames.ZSharp.Async.Task;
+namespace ZeroGames.ZSharp.Async.ZeroTask;
 
-public class UnderlyingTaskPool<T> where T : class, IPoolableUnderlyingTask<T>
+public class UnderlyingZeroTaskPool<T> where T : class, IPoolableUnderlyingZeroTask<T>
 {
 	
 	public T Pop()

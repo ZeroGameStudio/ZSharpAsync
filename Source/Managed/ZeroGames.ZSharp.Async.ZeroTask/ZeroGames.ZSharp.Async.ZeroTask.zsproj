@@ -1,0 +1,22 @@
+{
+	"ParentFolder": "ZSharp",
+	"Authors": "Lin7Han",
+	"Company": "ZeroGames",
+	"AssemblyVersion": "0.0.4",
+	"FileVersion": "0.0.4",
+	"NeutralLanguage": "zh",
+	"ProjectReferences":
+	[
+		"ZeroGames.ZSharp.Core",
+		"ZeroGames.ZSharp.Core.UnrealEngine",
+		"ZeroGames.ZSharp.Async"
+	],
+	"Usings":
+	[
+		"ZeroGames.ZSharp.Core",
+		"ZeroGames.ZSharp.Core.UnrealEngine",
+		"ZeroGames.ZSharp.Async"
+	]
+}
+
+

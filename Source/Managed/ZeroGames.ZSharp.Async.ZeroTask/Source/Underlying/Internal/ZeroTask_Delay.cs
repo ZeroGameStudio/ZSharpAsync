@@ -2,16 +2,16 @@
 
 using ZeroGames.ZSharp.Async.EventLoop;
 
-namespace ZeroGames.ZSharp.Async.Task;
+namespace ZeroGames.ZSharp.Async.ZeroTask;
 
-internal class DelayTask : IPoolableUnderlyingTaskVoid<DelayTask>
+internal class ZeroTask_Delay : IPoolableUnderlyingZeroTaskVoid<ZeroTask_Delay>
 {
 
-	public static DelayTask GetFromPool() => _pool.Pop();
+	public static ZeroTask_Delay GetFromPool() => _pool.Pop();
 	
-	public static DelayTask Create()
+	public static ZeroTask_Delay Create()
 	{
-		DelayTask task = new();
+		ZeroTask_Delay task = new();
 		task.Initialize();
 		return task;
 	}
@@ -20,7 +20,7 @@ internal class DelayTask : IPoolableUnderlyingTaskVoid<DelayTask>
 
 	public void Deinitialize() => _comp.Deinitialize();
 
-	public EUnderlyingTaskStatus GetStatus(uint64 token) => _comp.GetStatus(token);
+	public EUnderlyingZeroTaskStatus GetStatus(uint64 token) => _comp.GetStatus(token);
 
 	public void SetContinuation(Action continuation, uint64 token) => _comp.SetContinuation(continuation, token);
 
@@ -42,11 +42,11 @@ internal class DelayTask : IPoolableUnderlyingTaskVoid<DelayTask>
 
 	public uint64 Token => _comp.Token;
 
-	public DelayTask? PoolNext { get; set; }
+	public ZeroTask_Delay? PoolNext { get; set; }
 
-	private static readonly UnderlyingTaskPool<DelayTask> _pool = new();
+	private static readonly UnderlyingZeroTaskPool<ZeroTask_Delay> _pool = new();
 
-	private PoolableUnderlyingTaskComponentVoid _comp;
+	private PoolableUnderlyingZeroTaskComponentVoid _comp;
 	
 	private double _elapsedSeconds;
 	private double _delaySeconds;
