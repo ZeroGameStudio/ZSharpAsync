@@ -280,7 +280,7 @@ internal class EventLoop : IEventLoop
 					}
 				}
 
-				if (group == EEventLoopTickingGroup.DuringWorldTimerTick)
+				if (group == EEventLoopTickingGroup.DuringWorldTimerTick && false)
 				{
 					// Tick built-in timers
 					DateTime start = DateTime.Now;
