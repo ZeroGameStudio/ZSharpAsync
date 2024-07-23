@@ -17,7 +17,7 @@ public struct AsyncZeroTaskMethodBuilderVoid : IAsyncMethodBuilderVoid<AsyncZero
 	{
 		if (_task is null)
 		{
-			_task = UnderlyingZeroTask_AsyncStateMachine.GetFromPool();
+			_task = ZeroTask_AsyncStateMachine.GetFromPool();
 		}
 
 		TStateMachine copy = stateMachine;
@@ -28,7 +28,7 @@ public struct AsyncZeroTaskMethodBuilderVoid : IAsyncMethodBuilderVoid<AsyncZero
 	{
 		if (_task is null)
 		{
-			_task = UnderlyingZeroTask_AsyncStateMachine.GetFromPool();
+			_task = ZeroTask_AsyncStateMachine.GetFromPool();
 		}
 		
 		TStateMachine copy = stateMachine;
@@ -74,7 +74,7 @@ public struct AsyncZeroTaskMethodBuilderVoid : IAsyncMethodBuilderVoid<AsyncZero
 		}
 	}
 
-	private UnderlyingZeroTask_AsyncStateMachine? _task;
+	private ZeroTask_AsyncStateMachine? _task;
 	private Exception? _exception;
 
 }

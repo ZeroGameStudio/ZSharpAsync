@@ -2,14 +2,14 @@
 
 namespace ZeroGames.ZSharp.Async.ZeroTask;
 
-internal class UnderlyingZeroTask_AsyncStateMachine : IPoolableUnderlyingZeroTaskVoid<UnderlyingZeroTask_AsyncStateMachine>
+internal class ZeroTask_AsyncStateMachine : IPoolableUnderlyingZeroTaskVoid<ZeroTask_AsyncStateMachine>
 {
 
-	public static UnderlyingZeroTask_AsyncStateMachine GetFromPool() => _pool.Pop();
+	public static ZeroTask_AsyncStateMachine GetFromPool() => _pool.Pop();
 
-	public static UnderlyingZeroTask_AsyncStateMachine Create()
+	public static ZeroTask_AsyncStateMachine Create()
 	{
-		UnderlyingZeroTask_AsyncStateMachine task = new();
+		ZeroTask_AsyncStateMachine task = new();
 		task.Initialize();
 		return task;
 	}
@@ -34,11 +34,11 @@ internal class UnderlyingZeroTask_AsyncStateMachine : IPoolableUnderlyingZeroTas
 	
 	public uint64 Token => _comp.Token;
 	
-	public UnderlyingZeroTask_AsyncStateMachine? PoolNext { get; set; }
+	public ZeroTask_AsyncStateMachine? PoolNext { get; set; }
 	
 	public ZeroTask Task { get; private set; }
 
-	private static readonly UnderlyingZeroTaskPool<UnderlyingZeroTask_AsyncStateMachine> _pool = new();
+	private static readonly UnderlyingZeroTaskPool<ZeroTask_AsyncStateMachine> _pool = new();
 
 	private PoolableUnderlyingZeroTaskComponentVoid _comp;
 
