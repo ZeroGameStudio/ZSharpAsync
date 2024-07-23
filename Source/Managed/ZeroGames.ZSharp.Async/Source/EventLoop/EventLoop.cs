@@ -455,7 +455,7 @@ internal class EventLoop : IEventLoop
 		Handler,
 	}
 
-	private record struct Rec(object? Observer, ObserverType Type, bool HasState, object? State, WeakReference? Lifecycle);
+	private readonly record struct Rec(object? Observer, ObserverType Type, bool HasState, object? State, WeakReference? Lifecycle);
 
 }
 
