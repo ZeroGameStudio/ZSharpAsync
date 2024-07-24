@@ -186,7 +186,7 @@ internal class EventLoop : IEventLoop
 						{
 							// Use explicit lifecycle scope
 							object? lifecycle = rec.Lifecycle.Target;
-							if (lifecycle is not null && (lifecycle is not IExplicitLifecycle explicitLifecycle || explicitLifecycle.IsAlive))
+							if (lifecycle is not null && (lifecycle is not IExplicitLifecycle explicitLifecycle || !explicitLifecycle.IsExpired))
 							{
 								observer = rec.Observer;
 							}
