@@ -1,11 +1,9 @@
 ﻿// Copyright Zero Games. All Rights Reserved.
 
-using System.Runtime.CompilerServices;
-
 namespace ZeroGames.ZSharp.Async.ZeroTask;
 
 // These exist only for ensuring that the implement class matches specific pattern.
-internal interface IAwaiter : ICriticalNotifyCompletion
+internal interface IAwaiter : IZeroTaskAwaiter
 {
 	bool IsCompleted { get; }
 }

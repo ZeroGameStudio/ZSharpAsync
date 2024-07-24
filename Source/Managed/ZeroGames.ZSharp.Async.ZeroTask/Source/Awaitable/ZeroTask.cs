@@ -8,6 +8,14 @@ namespace ZeroGames.ZSharp.Async.ZeroTask;
 [AsyncMethodBuilder(typeof(AsyncZeroTaskMethodBuilderVoid))]
 public readonly partial struct ZeroTask : IZeroTask, IAwaitableVoid<ZeroTask.Awaiter>, IEquatable<ZeroTask>
 {
+	
+	public readonly struct Awaiter(ZeroTask _task) : IAwaiterVoid
+	{
+		public void OnCompleted(IAsyncStateMachine stateMachine) => _task.SetStateMachine(stateMachine);
+		public void OnCompleted(Action continuation) => _task.SetContinuation(continuation);
+		public void GetResult() => _task.GetResult();
+		public bool IsCompleted => _task.IsCompleted;
+	}
 
 	public Awaiter GetAwaiter() => new(this);
 
@@ -34,8 +42,20 @@ public readonly partial struct ZeroTask : IZeroTask, IAwaitableVoid<ZeroTask.Awa
 			_underlyingTask.GetResult(_token);
 		}
 	}
+	
+	private void SetStateMachine(IAsyncStateMachine stateMachine)
+	{
+		if (_underlyingTask is null)
+		{
+			stateMachine.MoveNext();
+		}
+		else
+		{
+			_underlyingTask.SetStateMachine(stateMachine, _token);
+		}
+	}
 
-	private void OnCompleted(Action continuation)
+	private void SetContinuation(Action continuation)
 	{
 		if (_underlyingTask is null)
 		{
@@ -50,14 +70,6 @@ public readonly partial struct ZeroTask : IZeroTask, IAwaitableVoid<ZeroTask.Awa
 	private readonly IUnderlyingZeroTaskVoid? _underlyingTask;
 	private readonly uint64 _token;
 	private readonly ExceptionDispatchInfo? _error;
-	
-	public readonly struct Awaiter(ZeroTask _task) : IAwaiterVoid
-	{
-		public void OnCompleted(Action continuation) => _task.OnCompleted(continuation);
-		public void UnsafeOnCompleted(Action continuation) => _task.OnCompleted(continuation);
-		public void GetResult() => _task.GetResult();
-		public bool IsCompleted => _task.IsCompleted;
-	}
 
 }
 

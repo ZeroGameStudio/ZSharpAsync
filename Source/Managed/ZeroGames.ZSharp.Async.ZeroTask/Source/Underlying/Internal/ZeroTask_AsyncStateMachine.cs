@@ -1,5 +1,7 @@
 ﻿// Copyright Zero Games. All Rights Reserved.
 
+using System.Runtime.CompilerServices;
+
 namespace ZeroGames.ZSharp.Async.ZeroTask;
 
 internal class ZeroTask_AsyncStateMachine : IPoolableUnderlyingZeroTaskVoid<ZeroTask_AsyncStateMachine>
@@ -10,6 +12,7 @@ internal class ZeroTask_AsyncStateMachine : IPoolableUnderlyingZeroTaskVoid<Zero
 	public static ZeroTask_AsyncStateMachine Create()
 	{
 		ZeroTask_AsyncStateMachine task = new();
+		task.Deinitialize();
 		task.Initialize();
 		return task;
 	}
@@ -23,9 +26,11 @@ internal class ZeroTask_AsyncStateMachine : IPoolableUnderlyingZeroTaskVoid<Zero
 	}
 
 	public EUnderlyingZeroTaskStatus GetStatus(uint64 token) => _comp.GetStatus(token);
+	
+	public void SetStateMachine(IAsyncStateMachine stateMachine, uint64 token) => _comp.SetStateMachine(stateMachine, token);
 
 	public void SetContinuation(Action continuation, uint64 token) => _comp.SetContinuation(continuation, token);
-
+	
 	public void GetResult(uint64 token) => _comp.GetResult(token);
 
 	public void SetResult() => _comp.SetResult();

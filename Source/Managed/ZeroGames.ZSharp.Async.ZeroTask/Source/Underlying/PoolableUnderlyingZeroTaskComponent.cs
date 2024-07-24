@@ -1,5 +1,6 @@
 ﻿// Copyright Zero Games. All Rights Reserved.
 
+using System.Runtime.CompilerServices;
 using System.Runtime.ExceptionServices;
 
 namespace ZeroGames.ZSharp.Async.ZeroTask;
@@ -23,6 +24,7 @@ public struct PoolableUnderlyingZeroTaskComponentVoid
 		
 		// Release reference to these so that they can get GCed earlier.
 		_continuation = null;
+		_stateMachine = null;
 		_error = null;
 	}
 
@@ -30,7 +32,7 @@ public struct PoolableUnderlyingZeroTaskComponentVoid
 	{
 		ValidateToken(token);
 
-		if (_continuation is null || !_isCompleted)
+		if (!_isCompleted || (_continuation is null && _stateMachine is null))
 		{
 			return EUnderlyingZeroTaskStatus.Pending;
 		}
@@ -47,10 +49,18 @@ public struct PoolableUnderlyingZeroTaskComponentVoid
 	{
 		ValidateToken(token);
 	}
+	
+	public void SetStateMachine(IAsyncStateMachine stateMachine, uint64 token)
+	{
+		ValidateToken(token);
+		ValidateContinuation();
+		_stateMachine = stateMachine;
+	}
 
 	public void SetContinuation(Action continuation, uint64 token)
 	{
 		ValidateToken(token);
+		ValidateContinuation();
 		_continuation = continuation;
 	}
 
@@ -75,6 +85,14 @@ public struct PoolableUnderlyingZeroTaskComponentVoid
 		}
 	}
 
+	private void ValidateContinuation()
+	{
+		if (_continuation is not null || _stateMachine is not null)
+		{
+			throw new InvalidOperationException();
+		}
+	}
+
 	private void SignalCompletion()
 	{
 		if (_isCompleted)
@@ -83,10 +101,19 @@ public struct PoolableUnderlyingZeroTaskComponentVoid
 		}
 
 		_isCompleted = true;
-		_continuation?.Invoke();
+
+		if (_stateMachine is not null)
+		{
+			_stateMachine.MoveNext();
+		}
+		else
+		{
+			_continuation!.Invoke();
+		}
 	}
 
 	private bool _isCompleted;
+	private IAsyncStateMachine? _stateMachine;
 	private Action? _continuation;
 	private ExceptionDispatchInfo? _error;
 

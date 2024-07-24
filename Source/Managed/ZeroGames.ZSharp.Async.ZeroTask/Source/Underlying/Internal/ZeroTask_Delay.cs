@@ -1,5 +1,6 @@
 ﻿// Copyright Zero Games. All Rights Reserved.
 
+using System.Runtime.CompilerServices;
 using ZeroGames.ZSharp.Async.EventLoop;
 
 namespace ZeroGames.ZSharp.Async.ZeroTask;
@@ -12,6 +13,7 @@ internal class ZeroTask_Delay : IPoolableUnderlyingZeroTaskVoid<ZeroTask_Delay>
 	public static ZeroTask_Delay Create()
 	{
 		ZeroTask_Delay task = new();
+		task.Deinitialize();
 		task.Initialize();
 		return task;
 	}
@@ -21,9 +23,11 @@ internal class ZeroTask_Delay : IPoolableUnderlyingZeroTaskVoid<ZeroTask_Delay>
 	public void Deinitialize() => _comp.Deinitialize();
 
 	public EUnderlyingZeroTaskStatus GetStatus(uint64 token) => _comp.GetStatus(token);
+	
+	public void SetStateMachine(IAsyncStateMachine stateMachine, uint64 token) => _comp.SetStateMachine(stateMachine, token);
 
 	public void SetContinuation(Action continuation, uint64 token) => _comp.SetContinuation(continuation, token);
-
+	
 	public void GetResult(uint64 token) => _comp.GetResult(token);
 
 	public void Run(double delayTimeMs)
