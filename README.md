@@ -3,22 +3,26 @@ ZSharpAsync 是 ZSharp 的扩展插件，实现了一套适用于虚幻引擎的
 
 ## ZeroGames.ZSharp.Async
 提供最基本的**事件循环**和**定时器**，以及其他构建高级抽象必须的组件。该程序集是 ZSharpAsync 的基础组件，必须开启。
+
 @TODO
 
 ## ZeroGames.ZSharp.Async.ZeroTask
-提供一种新的任务类型 ZeroTask，可以对其像原生任务类型一样使用 async/await 语法。
-其行为类似于 ValueTask，但也有一些关键的差异：
+提供一种新的任务类型 ZeroTask，可以对其像原生任务类型一样使用 async/await 语法。其行为类似于 ValueTask，但也有一些关键的差异：
+
 **相同点**
+
 1. 本体都是 0GC 的，只有异步操作真正发生时才会去对象池里申请堆上的对象。
 2. 都可以通过实现后台任务的接口来定制异步操作，ValueTask 对应 IValueTaskSource，而 ZeroTask 对应 IUnderlyingZeroTask。
 3. 都是消耗品，即只能等待一次；都不支持阻塞等待，即直接调用 Result 接口；都有 Preserve() 接口可以转换为可多次使用的对象。
 
 **不同点**
+
 1. ValueTask 绝大多数时候是基于线程池的多线程异步任务，而 ZeroTask 是基于事件循环的单线程异步任务。
 2. ValueTask 会传递 SynchronizationContext 和 ExecutionContext，而 ZeroTask 则不考虑这些。
 3. ValueTask 不支持组合操作，而 ZeroTask 有类似于 Task 的 ContinueWith、WhenAll、WhenAny 等操作。
 
 **为什么要有 ZeroTask**
+
 原生的 Task 使用线程池进行调度，而 UObject 不是线程安全的，与引擎交互的代码大部分都需要跑在虚幻引擎的 Game Thread。这就要求我们有一种能够方便地将代码调度到该线程的机制。同时，使用 Task 会频繁分配堆内存，对于游戏这种高度并行的系统来说，这些频繁的内存分配带来的 GC 压力是肉眼可见的。
 ZeroTask 并不阻止用户使用其他任务类型。对于不与引擎交互的代码，如纯托管侧的计算，仍然可以使用 Task 或 ValueTask 将任务指派给其他线程来提高效率。
 ## 内置的异步操作
@@ -120,6 +124,7 @@ await ZeroTask.Race(ptr.LoadAsync(), ZeroTask.Delay(1000).FromCancelled()); // �
 
 ## ZeroGames.ZSharp.Async.Enumerable
 提供将各种形式的事件转换成异步数据流的机制，并通过集成 Linq 实现对事件的流式操作。
+
 @TODO
 
 
