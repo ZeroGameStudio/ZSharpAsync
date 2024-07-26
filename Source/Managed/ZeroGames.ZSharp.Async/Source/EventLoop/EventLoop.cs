@@ -27,7 +27,7 @@ internal class EventLoop : IEventLoop
 		return InternalRegister(group, callback, state, lifecycle);
 	}
 
-	public void Unregister(EventLoopRegistration registration) => InternalUnregister(registration.Handle);
+	public void Unregister(EventLoopRegistration registration) => InternalUnregister(registration);
 
 	public void UnregisterAll(object lifecycle) => InternalUnregisterAll(lifecycle);
 
@@ -61,7 +61,7 @@ internal class EventLoop : IEventLoop
 				if (_registry.TryGetValue(group, out var registry))
 				{
 					bool mayHaveSideEffects = false;
-					uint64 stale = 0;
+					EventLoopRegistration stale = default;
 					foreach (var pair in registry)
 					{
 						Rec rec = pair.Value;
@@ -87,7 +87,7 @@ internal class EventLoop : IEventLoop
 					}
 
 					// Clear only one stale registration because we run very frequently.
-					if (stale > 0)
+					if (stale.IsValid)
 					{
 						registry.Remove(stale);
 					}
@@ -105,16 +105,16 @@ internal class EventLoop : IEventLoop
 		}
 	}
 	
-	internal void InternalUnregister(uint64 handle)
+	internal void InternalUnregister(EventLoopRegistration registration)
 	{
-		static bool Traverse(Dictionary<EEventLoopTickingGroup, Dictionary<uint64, Rec>> registry, uint64 handle)
+		static bool Traverse(Dictionary<EEventLoopTickingGroup, Dictionary<EventLoopRegistration, Rec>> registry, EventLoopRegistration reg)
 		{
 			foreach (var pair in registry)
 			{
 				var innerRegistry = pair.Value;
-				if (innerRegistry.ContainsKey(handle))
+				if (innerRegistry.ContainsKey(reg))
 				{
-					innerRegistry[handle] = default;
+					innerRegistry[reg] = default;
 					return true;
 				}
 			}
@@ -122,14 +122,14 @@ internal class EventLoop : IEventLoop
 			return false;
 		}
 
-		if (UnrealEngineStatics.IsInGameThread() && _isNotifing && Traverse(_deferredRegistry, handle))
+		if (UnrealEngineStatics.IsInGameThread() && _isNotifing && Traverse(_deferredRegistry, registration))
 		{
 			return;
 		}
 
 		lock (_registryLock)
 		{
-			Traverse(_registry, handle);
+			Traverse(_registry, registration);
 		}
 	}
 
@@ -146,7 +146,7 @@ internal class EventLoop : IEventLoop
 		}
 	}
 
-	private EventLoopRegistration InternalRegisterTo(Dictionary<EEventLoopTickingGroup, Dictionary<uint64, Rec>> registry, EEventLoopTickingGroup group, EventLoopCallback callback, object? state, object? lifecycle)
+	private EventLoopRegistration InternalRegisterTo(Dictionary<EEventLoopTickingGroup, Dictionary<EventLoopRegistration, Rec>> registry, EEventLoopTickingGroup group, EventLoopCallback callback, object? state, object? lifecycle)
 	{
 		if (!registry.TryGetValue(group, out var innerRegistry))
 		{
@@ -154,8 +154,7 @@ internal class EventLoop : IEventLoop
 			registry[group] = innerRegistry;
 		}
 
-		uint64 handle = _handle;
-		EventLoopRegistration reg = new(this, _handle++);
+		EventLoopRegistration reg = new(this, ++_handle);
 		
 		WeakReference? wr = null;
 		Lifecycle lc = default;
@@ -163,8 +162,7 @@ internal class EventLoop : IEventLoop
 		{
 			if (lifecycle is IExplicitLifecycle explicitLifecycle)
 			{
-				// @FIXME: Use lc.
-				wr = new(lifecycle);
+				lc = Lifecycle.Explicit(explicitLifecycle);
 			}
 			else if (lifecycle is Lifecycle valueLifecycle)
 			{
@@ -176,14 +174,14 @@ internal class EventLoop : IEventLoop
 			}
 		}
 		
-		innerRegistry[handle] = new(callback, state, wr, lc);
+		innerRegistry[reg] = new(callback, state, wr, lc);
 
 		return reg;
 	}
 
 	private void InternalUnregisterAll(object lifecycle)
 	{
-		static void Traverse(Dictionary<EEventLoopTickingGroup, Dictionary<uint64, Rec>> registry, object lifecycle)
+		static void Traverse(Dictionary<EEventLoopTickingGroup, Dictionary<EventLoopRegistration, Rec>> registry, object lifecycle)
 		{
 			foreach (var pair in registry)
 			{
@@ -227,7 +225,7 @@ internal class EventLoop : IEventLoop
 		}
 	}
 	
-	private void RegisterDeferred(EEventLoopTickingGroup group, uint64 handle, in Rec rec)
+	private void RegisterDeferred(EEventLoopTickingGroup group, EventLoopRegistration registration, in Rec rec)
 	{
 		if (!_registry.TryGetValue(group, out var innerRegistry))
 		{
@@ -235,7 +233,7 @@ internal class EventLoop : IEventLoop
 			_registry[group] = innerRegistry;
 		}
 
-		innerRegistry[handle] = rec;
+		innerRegistry[registration] = rec;
 	}
 
 	private bool IsValidRec(in Rec rec)
@@ -250,7 +248,7 @@ internal class EventLoop : IEventLoop
 			return true;
 		}
 
-		return rec.Lifecycle.IsExpired;
+		return !rec.Lifecycle.IsExpired;
 	}
 	
 	private readonly record struct Rec(EventLoopCallback? Callback, object? State, WeakReference? WeakLifecycle, Lifecycle Lifecycle);
@@ -261,8 +259,8 @@ internal class EventLoop : IEventLoop
 	private double _realAccumulatedTime;
 	
 	private object _registryLock = new();
-	private Dictionary<EEventLoopTickingGroup, Dictionary<uint64, Rec>> _registry = new();
-	private Dictionary<EEventLoopTickingGroup, Dictionary<uint64, Rec>> _deferredRegistry = new();
+	private Dictionary<EEventLoopTickingGroup, Dictionary<EventLoopRegistration, Rec>> _registry = new();
+	private Dictionary<EEventLoopTickingGroup, Dictionary<EventLoopRegistration, Rec>> _deferredRegistry = new();
 
 	private bool _isNotifing;
 

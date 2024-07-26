@@ -10,6 +10,8 @@ public readonly struct UnderlyingZeroTaskToken(uint64 version) : IEquatable<Unde
 	public override int32 GetHashCode() => _version.GetHashCode();
 	public static bool operator==(UnderlyingZeroTaskToken lhs, UnderlyingZeroTaskToken rhs) => lhs.Equals(rhs);
 	public static bool operator!=(UnderlyingZeroTaskToken lhs, UnderlyingZeroTaskToken rhs) => !lhs.Equals(rhs);
+
+	public bool IsValid => _version > 0;
 	
 	public UnderlyingZeroTaskToken Next => new(_version + 1);
 	

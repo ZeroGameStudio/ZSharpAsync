@@ -18,12 +18,10 @@ public readonly struct EventLoopRegistration : IEquatable<EventLoopRegistration>
 			throw new InvalidOperationException();
 		}
 		
-		_owner.InternalUnregister(_handle);
+		_owner.InternalUnregister(this);
 	}
 	
 	public bool IsValid => _handle > 0;
-
-	internal uint64 Handle => _handle;
 
 	internal EventLoopRegistration(EventLoop owner, uint64 handle)
 	{

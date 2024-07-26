@@ -11,6 +11,8 @@ public readonly struct UnderlyingLifecycleToken(uint64 version) : IEquatable<Und
 	public static bool operator==(UnderlyingLifecycleToken lhs, UnderlyingLifecycleToken rhs) => lhs.Equals(rhs);
 	public static bool operator!=(UnderlyingLifecycleToken lhs, UnderlyingLifecycleToken rhs) => !lhs.Equals(rhs);
 
+	public bool IsValid => _version > 0;
+
 	public UnderlyingLifecycleToken Next => new(_version + 1);
 	
 	private readonly uint64 _version = version;

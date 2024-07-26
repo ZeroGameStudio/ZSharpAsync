@@ -2,7 +2,7 @@
 
 namespace ZeroGames.ZSharp.Async;
 
-public readonly struct Lifecycle(IUnderlyingLifecycle underlyingLifecycle) : IEquatable<Lifecycle>
+public readonly partial struct Lifecycle(IUnderlyingLifecycle underlyingLifecycle) : IEquatable<Lifecycle>
 {
 
 	public bool Equals(Lifecycle other) => Equals(_underlyingLifecycle, other._underlyingLifecycle) && _capturedToken == other._capturedToken;
@@ -11,10 +11,10 @@ public readonly struct Lifecycle(IUnderlyingLifecycle underlyingLifecycle) : IEq
 	public static bool operator==(Lifecycle lhs, Lifecycle rhs) => lhs.Equals(rhs);
 	public static bool operator!=(Lifecycle lhs, Lifecycle rhs) => !lhs.Equals(rhs);
 
-	public LifecycleExpiredRegistration RegisterOnExpired(Action<IUnderlyingLifecycle, object?> callback, object? state) => _underlyingLifecycle?.RegisterOnExpired(callback, state) ?? default;
-	public void UnregisterOnExpired(LifecycleExpiredRegistration registration) => _underlyingLifecycle?.UnregisterOnExpired(registration);
+	public LifecycleExpiredRegistration RegisterOnExpired(Action<IUnderlyingLifecycle, object?> callback, object? state) => _underlyingLifecycle?.RegisterOnExpired(callback, state, _capturedToken) ?? default;
+	public void UnregisterOnExpired(LifecycleExpiredRegistration registration) => _underlyingLifecycle?.UnregisterOnExpired(registration, _capturedToken);
 	
-	public bool IsExpired => _underlyingLifecycle?.IsExpired ?? false;
+	public bool IsExpired => _underlyingLifecycle?.IsExpired(_capturedToken) ?? false;
 	
 	private readonly IUnderlyingLifecycle? _underlyingLifecycle = underlyingLifecycle;
 	private readonly UnderlyingLifecycleToken _capturedToken = underlyingLifecycle.Token;
