@@ -14,6 +14,18 @@ internal class EventLoop : IEventLoop
 			throw new InvalidOperationException();
 		}
 		
+		if (lifecycle is not null)
+		{
+			if (lifecycle is IExplicitLifecycle { IsExpired: true })
+			{
+				throw new InvalidOperationException();
+			}
+			if (lifecycle is Lifecycle { IsExpired: true })
+			{
+				throw new InvalidOperationException();
+			}
+		}
+		
 		return InternalRegister(group, callback, state, lifecycle);
 	}
 	
@@ -144,12 +156,27 @@ internal class EventLoop : IEventLoop
 
 		uint64 handle = _handle;
 		EventLoopRegistration reg = new(this, _handle++);
+		
 		WeakReference? wr = null;
+		Lifecycle lc = default;
 		if (lifecycle is not null)
 		{
-			wr = new(lifecycle);
+			if (lifecycle is IExplicitLifecycle explicitLifecycle)
+			{
+				// @FIXME: Use lc.
+				wr = new(lifecycle);
+			}
+			else if (lifecycle is Lifecycle valueLifecycle)
+			{
+				lc = valueLifecycle;
+			}
+			else
+			{
+				wr = new(lifecycle);
+			}
 		}
-		innerRegistry[handle] = new(callback, state, wr);
+		
+		innerRegistry[handle] = new(callback, state, wr, lc);
 
 		return reg;
 	}
@@ -163,7 +190,7 @@ internal class EventLoop : IEventLoop
 				var innerRegistry = pair.Value;
 				foreach (var innerPair in innerRegistry)
 				{
-					if (innerPair.Value.Lifecycle?.Target == lifecycle)
+					if (innerPair.Value.WeakLifecycle?.Target == lifecycle)
 					{
 						innerRegistry[innerPair.Key] = default;
 					}
@@ -184,17 +211,6 @@ internal class EventLoop : IEventLoop
 
 	private void FlushDeferredRegistry()
 	{
-		static void Apply(Dictionary<EEventLoopTickingGroup, Dictionary<uint64, Rec>> registry, EEventLoopTickingGroup group, uint64 handle, in Rec rec)
-		{
-			if (!registry.TryGetValue(group, out var innerRegistry))
-			{
-				innerRegistry = new();
-				registry[group] = innerRegistry;
-			}
-
-			innerRegistry[handle] = rec;
-		}
-		
 		foreach (var pair in _deferredRegistry)
 		{
 			var innerRegistry = pair.Value;
@@ -204,16 +220,40 @@ internal class EventLoop : IEventLoop
 				if (IsValidRec(rec))
 				{
 					// This method is only used by NotifyEvent which already acquires lock, so here we don't lock again.
-					Apply(_registry, pair.Key, innerPair.Key, rec);
+					RegisterDeferred(pair.Key, innerPair.Key, rec);
 				}
 			}
 			innerRegistry.Clear();
 		}
 	}
-
-	private bool IsValidRec(in Rec rec) => rec.Callback is not null && (rec.Lifecycle is null || rec.Lifecycle.Target is not null);
 	
-	private readonly record struct Rec(EventLoopCallback? Callback, object? State, WeakReference? Lifecycle);
+	private void RegisterDeferred(EEventLoopTickingGroup group, uint64 handle, in Rec rec)
+	{
+		if (!_registry.TryGetValue(group, out var innerRegistry))
+		{
+			innerRegistry = new();
+			_registry[group] = innerRegistry;
+		}
+
+		innerRegistry[handle] = rec;
+	}
+
+	private bool IsValidRec(in Rec rec)
+	{
+		if (rec.Callback is null)
+		{
+			return false;
+		}
+
+		if (rec.WeakLifecycle is not null && rec.WeakLifecycle.Target is not null)
+		{
+			return true;
+		}
+
+		return rec.Lifecycle.IsExpired;
+	}
+	
+	private readonly record struct Rec(EventLoopCallback? Callback, object? State, WeakReference? WeakLifecycle, Lifecycle Lifecycle);
 	
 	private static EventLoop _singleton = new();
 	
