@@ -20,8 +20,7 @@ public struct PoolableUnderlyingZeroTaskComponentVoid
 	public void Deinitialize()
 	{
 		// Invalidate token immediately.
-		++_version;
-		Token = new(_version);
+		Token = Token.Next;
 		
 		// Release reference to these so that they can get GCed earlier.
 		_continuation = null;
@@ -113,7 +112,6 @@ public struct PoolableUnderlyingZeroTaskComponentVoid
 		}
 	}
 
-	private uint64 _version;
 	private bool _isCompleted;
 	private IAsyncStateMachine? _stateMachine;
 	private Action? _continuation;

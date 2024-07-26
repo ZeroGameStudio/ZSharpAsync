@@ -11,6 +11,8 @@ public readonly struct UnderlyingZeroTaskToken(uint64 version) : IEquatable<Unde
 	public static bool operator==(UnderlyingZeroTaskToken lhs, UnderlyingZeroTaskToken rhs) => lhs.Equals(rhs);
 	public static bool operator!=(UnderlyingZeroTaskToken lhs, UnderlyingZeroTaskToken rhs) => !lhs.Equals(rhs);
 	
+	public UnderlyingZeroTaskToken Next => new(_version + 1);
+	
 	private readonly uint64 _version = version;
 	
 }
