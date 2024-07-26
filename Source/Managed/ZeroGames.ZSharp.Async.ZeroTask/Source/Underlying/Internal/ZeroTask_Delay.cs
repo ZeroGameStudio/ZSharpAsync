@@ -7,7 +7,13 @@ namespace ZeroGames.ZSharp.Async.ZeroTask;
 internal class ZeroTask_Delay : IPoolableUnderlyingZeroTaskVoid<ZeroTask_Delay>
 {
 
-	public static ZeroTask_Delay GetFromPool() => _pool.Pop();
+	public static ZeroTask_Delay GetFromPool(double delayTimeMs)
+	{
+		ZeroTask_Delay task = _pool.Pop();
+		task._delaySeconds = delayTimeMs * 0.001;
+		
+		return task;
+	}
 	
 	public static ZeroTask_Delay Create()
 	{
@@ -29,9 +35,8 @@ internal class ZeroTask_Delay : IPoolableUnderlyingZeroTaskVoid<ZeroTask_Delay>
 	
 	public void GetResult(UnderlyingZeroTaskToken token) => _comp.GetResult(token);
 
-	public void Run(double delayTimeMs)
+	public void Run()
 	{
-		_delaySeconds = delayTimeMs * 0.001;
 		_reg = IEventLoop.Get().Register(EEventLoopTickingGroup.DuringWorldTimerTick, static (in EventLoopArgs args, object? state) =>
 		{
 			ZeroTask_Delay @this = Unsafe.As<ZeroTask_Delay>(state!);

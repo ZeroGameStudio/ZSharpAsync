@@ -4,7 +4,6 @@ namespace ZeroGames.ZSharp.Async.ZeroTask;
 
 public interface IPoolableUnderlyingZeroTask<TImpl> : IUnderlyingZeroTask where TImpl : class, IPoolableUnderlyingZeroTask<TImpl>
 {
-	static abstract TImpl GetFromPool();
 	static abstract TImpl Create();
 	void Initialize();
 	void Deinitialize();

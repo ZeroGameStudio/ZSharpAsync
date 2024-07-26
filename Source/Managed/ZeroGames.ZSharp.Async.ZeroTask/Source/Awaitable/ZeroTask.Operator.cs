@@ -16,9 +16,9 @@ public partial struct ZeroTask
 			return FromResult();
 		}
 		
-		ZeroTask_Delay delay = ZeroTask_Delay.GetFromPool();
+		ZeroTask_Delay delay = ZeroTask_Delay.GetFromPool(delayTimeMs);
 		ZeroTask task = FromUnderlyingTask(delay);
-		delay.Run(delayTimeMs);
+		delay.Run();
 		return task;
 	}
 
