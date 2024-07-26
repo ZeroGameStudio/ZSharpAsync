@@ -12,11 +12,11 @@ public class Lifecycle_ExplicitLifecycle : IPoolableUnderlyingLifecycle<Lifecycl
 		Lifecycle_ExplicitLifecycle lifecycle = _pool.Pop();
 		if (explicitLifecycle.IsExpired)
 		{
-			lifecycle._comp.SetExpired();
+			lifecycle.SetExpired();
 		}
 		else
 		{
-			explicitLifecycle.RegisterOnExpired((_, @this) => Unsafe.As<Lifecycle_ExplicitLifecycle>(@this!)._comp.SetExpired(), lifecycle);
+			explicitLifecycle.RegisterOnExpired((_, @this) => Unsafe.As<Lifecycle_ExplicitLifecycle>(@this!).SetExpired(), lifecycle);
 		}
 		return lifecycle;
 	}
@@ -47,6 +47,12 @@ public class Lifecycle_ExplicitLifecycle : IPoolableUnderlyingLifecycle<Lifecycl
 	public UnderlyingLifecycleToken Token => _comp.Token;
 
 	public Lifecycle_ExplicitLifecycle? PoolNext { get; set; }
+
+	private void SetExpired()
+	{
+		_comp.SetExpired();
+		_pool.Push(this);
+	}
 	
 	private static readonly UnderlyingLifecyclePool<Lifecycle_ExplicitLifecycle> _pool = new();
 	

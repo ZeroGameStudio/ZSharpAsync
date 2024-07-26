@@ -7,9 +7,10 @@ namespace ZeroGames.ZSharp.Async.ZeroTask;
 internal class ZeroTask_Delay : IPoolableUnderlyingZeroTaskVoid<ZeroTask_Delay>
 {
 
-	public static ZeroTask_Delay GetFromPool(double delayTimeMs)
+	public static ZeroTask_Delay GetFromPool(double delayTimeMs, Lifecycle lifecycle)
 	{
 		ZeroTask_Delay task = _pool.Pop();
+		task._lifecycle = lifecycle;
 		task._delaySeconds = delayTimeMs * 0.001;
 		
 		return task;
@@ -32,14 +33,30 @@ internal class ZeroTask_Delay : IPoolableUnderlyingZeroTaskVoid<ZeroTask_Delay>
 	public void SetStateMachine(IAsyncStateMachine stateMachine, UnderlyingZeroTaskToken token) => _comp.SetStateMachine(stateMachine, token);
 
 	public void SetContinuation(Action continuation, UnderlyingZeroTaskToken token) => _comp.SetContinuation(continuation, token);
-	
-	public void GetResult(UnderlyingZeroTaskToken token) => _comp.GetResult(token);
+
+	public void GetResult(UnderlyingZeroTaskToken token)
+	{
+		_comp.GetResult(token);
+		_pool.Push(this);
+	}
 
 	public void Run()
 	{
 		_reg = IEventLoop.Get().Register(EEventLoopTickingGroup.DuringWorldTimerTick, static (in EventLoopArgs args, object? state) =>
 		{
 			ZeroTask_Delay @this = Unsafe.As<ZeroTask_Delay>(state!);
+			if (@this._lifecycle.IsExpired)
+			{
+				try
+				{
+					@this._comp.SetException(new LifecycleExpiredException(@this._lifecycle));
+				}
+				finally
+				{
+					@this._reg.Unregister();
+				}
+			}
+			
 			@this._elapsedSeconds += args.WorldDeltaTime;
 			if (@this._elapsedSeconds >= @this._delaySeconds)
 			{
@@ -62,6 +79,8 @@ internal class ZeroTask_Delay : IPoolableUnderlyingZeroTaskVoid<ZeroTask_Delay>
 	private static readonly UnderlyingZeroTaskPool<ZeroTask_Delay> _pool = new();
 
 	private PoolableUnderlyingZeroTaskComponentVoid _comp;
+
+	private Lifecycle _lifecycle;
 	
 	private double _elapsedSeconds;
 	private double _delaySeconds;

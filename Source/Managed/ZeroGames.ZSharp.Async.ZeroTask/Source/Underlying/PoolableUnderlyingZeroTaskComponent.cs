@@ -42,12 +42,19 @@ public struct PoolableUnderlyingZeroTaskComponentVoid
 			return EUnderlyingZeroTaskStatus.Succeeded;
 		}
 
-		return _error.SourceException is OperationCanceledException ? EUnderlyingZeroTaskStatus.Canceled : EUnderlyingZeroTaskStatus.Faulted;
+		return _error.SourceException is LifecycleExpiredException || _error.SourceException is OperationCanceledException ? EUnderlyingZeroTaskStatus.Canceled : EUnderlyingZeroTaskStatus.Faulted;
 	}
 
 	public void GetResult(UnderlyingZeroTaskToken token)
 	{
 		ValidateToken(token);
+
+		if (!_isCompleted)
+		{
+			throw new InvalidOperationException();
+		}
+		
+		_error?.Throw();
 	}
 	
 	public void SetStateMachine(IAsyncStateMachine stateMachine, UnderlyingZeroTaskToken token)

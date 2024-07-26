@@ -1,7 +1,5 @@
 ﻿// Copyright Zero Games. All Rights Reserved.
 
-using System.Threading;
-
 namespace ZeroGames.ZSharp.Async;
 
 public class PoolableUnderlyingLifecycleComponent(IUnderlyingLifecycle lifecycle)
@@ -24,7 +22,7 @@ public class PoolableUnderlyingLifecycleComponent(IUnderlyingLifecycle lifecycle
 		lock (this)
 		{
 			ValidateToken(token);
-			if (_isExpired)
+			if (IsExpired(token))
 			{
 				if (UnrealEngineStatics.IsInGameThread())
 				{
@@ -32,7 +30,7 @@ public class PoolableUnderlyingLifecycleComponent(IUnderlyingLifecycle lifecycle
 				}
 				else
 				{
-					SynchronizationContext.Current?.Send(s => callback(_lifecycle, s), state);
+					IMasterAssemblyLoadContext.Get()!.SynchronizationContext.Send(s => callback(_lifecycle, s), state);
 				}
                 
 				return default;
@@ -52,8 +50,7 @@ public class PoolableUnderlyingLifecycleComponent(IUnderlyingLifecycle lifecycle
 	{
 		lock (this)
 		{
-			ValidateToken(token);
-			if (!_isExpired)
+			if (!IsExpired(token))
 			{
 				_registry?.Remove(registration);
 			}
@@ -64,8 +61,7 @@ public class PoolableUnderlyingLifecycleComponent(IUnderlyingLifecycle lifecycle
 	{
 		lock (this)
 		{
-			ValidateToken(token);
-			return _isExpired;
+			return _token != token || _isExpired;
 		}
 	}
 
@@ -87,11 +83,11 @@ public class PoolableUnderlyingLifecycleComponent(IUnderlyingLifecycle lifecycle
 					Rec rec = pair.Value;
 					if (isInGameThread)
 					{
-						rec.Callback(lifecycle, rec.State);
+						rec.Callback(_lifecycle, rec.State);
 					}
 					else
 					{
-						SynchronizationContext.Current?.Send(_ => rec.Callback(lifecycle, rec.State), null);
+						IMasterAssemblyLoadContext.Get()!.SynchronizationContext.Send(_ => rec.Callback(_lifecycle, rec.State), null);
 					}
 				}
 			}
