@@ -32,15 +32,22 @@ internal class ZeroTask_Delay : IPoolableUnderlyingZeroTaskVoid<ZeroTask_Delay>
 	public void Run(double delayTimeMs)
 	{
 		_delaySeconds = delayTimeMs * 0.001;
-		_handle = IEventLoop.Get().RegisterObserver(EEventLoopTickingGroup.DuringWorldTimerTick, deltaSeconds =>
+		_reg = IEventLoop.Get().Register(EEventLoopTickingGroup.DuringWorldTimerTick, static (in EventLoopArgs args, object? state) =>
 		{
-			_elapsedSeconds += deltaSeconds;
-			if (_elapsedSeconds >= _delaySeconds)
+			ZeroTask_Delay @this = Unsafe.As<ZeroTask_Delay>(state!);
+			@this._elapsedSeconds += args.WorldDeltaTime;
+			if (@this._elapsedSeconds >= @this._delaySeconds)
 			{
-				_comp.SetResult();
-				IEventLoop.Get().UnregisterObserver(_handle);
+				try
+				{
+					@this._comp.SetResult();
+				}
+				finally
+				{
+					@this._reg.Unregister();
+				}
 			}
-		}, this);
+		}, this, null);
 	}
 
 	public UnderlyingZeroTaskToken Token => _comp.Token;
@@ -53,6 +60,6 @@ internal class ZeroTask_Delay : IPoolableUnderlyingZeroTaskVoid<ZeroTask_Delay>
 	
 	private double _elapsedSeconds;
 	private double _delaySeconds;
-	private EventLoopObserverHandle _handle;
+	private EventLoopRegistration _reg;
 
 }
