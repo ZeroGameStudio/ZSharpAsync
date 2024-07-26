@@ -2,7 +2,7 @@
 
 using System.Runtime.InteropServices;
 
-namespace ZeroGames.ZSharp.Async.EventLoop;
+namespace ZeroGames.ZSharp.Async;
 
 internal static class EventLoop_Interop
 {

@@ -1,8 +1,6 @@
 ﻿// Copyright Zero Games. All Rights Reserved.
 
 using System.Runtime.InteropServices;
-using ZeroGames.ZSharp.Async.EventLoop;
-using ZeroGames.ZSharp.Core;
 
 [assembly: DllEntry(typeof(ZeroGames.ZSharp.Async.DllEntry))]
 

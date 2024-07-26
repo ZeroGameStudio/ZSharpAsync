@@ -1,7 +1,6 @@
 ﻿// Copyright Zero Games. All Rights Reserved.
 
 using System.Runtime.CompilerServices;
-using ZeroGames.ZSharp.Async.EventLoop;
 
 namespace ZeroGames.ZSharp.Async.ZeroTask;
 

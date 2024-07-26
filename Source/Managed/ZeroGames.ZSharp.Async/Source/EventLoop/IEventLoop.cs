@@ -1,8 +1,6 @@
 ﻿// Copyright Zero Games. All Rights Reserved.
 
-using ZeroGames.ZSharp.Async.Timer;
-
-namespace ZeroGames.ZSharp.Async.EventLoop;
+namespace ZeroGames.ZSharp.Async;
 
 public delegate void EventLoopHandler(in EventLoopArgs args);
 public delegate void EventLoopHandler<in T>(in EventLoopArgs args, T state);
