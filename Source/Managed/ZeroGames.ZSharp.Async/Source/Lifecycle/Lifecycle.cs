@@ -12,7 +12,8 @@ public readonly struct Lifecycle(IUnderlyingLifecycle underlyingLifecycle) : IEq
 	public static bool operator!=(Lifecycle lhs, Lifecycle rhs) => !lhs.Equals(rhs);
 
 	public LifecycleExpiredRegistration RegisterOnExpired(Action<IUnderlyingLifecycle, object?> callback, object? state) => _underlyingLifecycle?.RegisterOnExpired(callback, state) ?? default;
-
+	public void UnregisterOnExpired(LifecycleExpiredRegistration registration) => _underlyingLifecycle?.UnregisterOnExpired(registration);
+	
 	public bool IsExpired => _underlyingLifecycle?.IsExpired ?? false;
 	
 	private readonly IUnderlyingLifecycle? _underlyingLifecycle = underlyingLifecycle;
