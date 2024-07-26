@@ -20,8 +20,10 @@ public readonly struct EventLoopRegistration : IEquatable<EventLoopRegistration>
 		
 		_owner.InternalUnregister(_handle);
 	}
-
+	
 	public bool IsValid => _handle > 0;
+
+	internal uint64 Handle => _handle;
 
 	internal EventLoopRegistration(EventLoop owner, uint64 handle)
 	{

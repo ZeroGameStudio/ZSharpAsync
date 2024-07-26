@@ -1,7 +1,5 @@
 ﻿// Copyright Zero Games. All Rights Reserved.
 
-using System.Diagnostics.CodeAnalysis;
-
 namespace ZeroGames.ZSharp.Async;
 
 internal class EventLoop : IEventLoop
@@ -28,7 +26,9 @@ internal class EventLoop : IEventLoop
 		
 		return InternalRegister(group, callback, state, lifecycle);
 	}
-	
+
+	public void Unregister(EventLoopRegistration registration) => InternalUnregister(registration.Handle);
+
 	public void UnregisterAll(object lifecycle) => InternalUnregisterAll(lifecycle);
 
 	internal static EventLoop Get() => _singleton;
