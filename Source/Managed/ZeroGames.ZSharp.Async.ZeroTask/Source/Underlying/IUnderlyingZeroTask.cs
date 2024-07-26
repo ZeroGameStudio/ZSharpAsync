@@ -10,20 +10,20 @@ namespace ZeroGames.ZSharp.Async.ZeroTask;
 /// </summary>
 public interface IUnderlyingZeroTask
 {
-	EUnderlyingZeroTaskStatus GetStatus(uint64 token);
-	void SetContinuation(Action continuation, uint64 token);
-	void SetStateMachine(IAsyncStateMachine stateMachine, uint64 token);
-	uint64 Token { get; }
+	EUnderlyingZeroTaskStatus GetStatus(UnderlyingZeroTaskToken token);
+	void SetContinuation(Action continuation, UnderlyingZeroTaskToken token);
+	void SetStateMachine(IAsyncStateMachine stateMachine, UnderlyingZeroTaskToken token);
+	UnderlyingZeroTaskToken Token { get; }
 }
 
 public interface IUnderlyingZeroTaskVoid : IUnderlyingZeroTask
 {
-	void GetResult(uint64 token);
+	void GetResult(UnderlyingZeroTaskToken token);
 }
 
 public interface IUnderlyingZeroTask<out TResult> : IUnderlyingZeroTask
 {
-	TResult GetResult(uint64 token);
+	TResult GetResult(UnderlyingZeroTaskToken token);
 }
 
 

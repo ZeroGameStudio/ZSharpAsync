@@ -20,7 +20,8 @@ public struct PoolableUnderlyingZeroTaskComponentVoid
 	public void Deinitialize()
 	{
 		// Invalidate token immediately.
-		++Token;
+		++_version;
+		Token = new(_version);
 		
 		// Release reference to these so that they can get GCed earlier.
 		_continuation = null;
@@ -28,7 +29,7 @@ public struct PoolableUnderlyingZeroTaskComponentVoid
 		_error = null;
 	}
 
-	public EUnderlyingZeroTaskStatus GetStatus(uint64 token)
+	public EUnderlyingZeroTaskStatus GetStatus(UnderlyingZeroTaskToken token)
 	{
 		ValidateToken(token);
 
@@ -45,19 +46,19 @@ public struct PoolableUnderlyingZeroTaskComponentVoid
 		return _error.SourceException is OperationCanceledException ? EUnderlyingZeroTaskStatus.Canceled : EUnderlyingZeroTaskStatus.Faulted;
 	}
 
-	public void GetResult(uint64 token)
+	public void GetResult(UnderlyingZeroTaskToken token)
 	{
 		ValidateToken(token);
 	}
 	
-	public void SetStateMachine(IAsyncStateMachine stateMachine, uint64 token)
+	public void SetStateMachine(IAsyncStateMachine stateMachine, UnderlyingZeroTaskToken token)
 	{
 		ValidateToken(token);
 		ValidateContinuation();
 		_stateMachine = stateMachine;
 	}
 
-	public void SetContinuation(Action continuation, uint64 token)
+	public void SetContinuation(Action continuation, UnderlyingZeroTaskToken token)
 	{
 		ValidateToken(token);
 		ValidateContinuation();
@@ -75,9 +76,9 @@ public struct PoolableUnderlyingZeroTaskComponentVoid
 		SignalCompletion();
 	}
 	
-	public uint64 Token { get; private set; }
+	public UnderlyingZeroTaskToken Token { get; private set; }
 
-	private void ValidateToken(uint64 token)
+	private void ValidateToken(UnderlyingZeroTaskToken token)
 	{
 		if (token != Token)
 		{
@@ -112,6 +113,7 @@ public struct PoolableUnderlyingZeroTaskComponentVoid
 		}
 	}
 
+	private uint64 _version;
 	private bool _isCompleted;
 	private IAsyncStateMachine? _stateMachine;
 	private Action? _continuation;

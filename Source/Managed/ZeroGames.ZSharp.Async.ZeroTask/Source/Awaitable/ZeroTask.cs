@@ -1,12 +1,11 @@
 ﻿// Copyright Zero Games. All Rights Reserved.
 
 using System.Runtime.CompilerServices;
-using System.Runtime.ExceptionServices;
 
 namespace ZeroGames.ZSharp.Async.ZeroTask;
 
 [AsyncMethodBuilder(typeof(AsyncZeroTaskMethodBuilderVoid))]
-public readonly partial struct ZeroTask : IZeroTask, IAwaitableVoid<ZeroTask.Awaiter>, IEquatable<ZeroTask>
+public readonly partial struct ZeroTask(IUnderlyingZeroTaskVoid underlyingTask) : IZeroTask, IAwaitableVoid<ZeroTask.Awaiter>, IEquatable<ZeroTask>
 {
 	
 	public readonly struct Awaiter(ZeroTask _task) : IAwaiterVoid
@@ -19,27 +18,19 @@ public readonly partial struct ZeroTask : IZeroTask, IAwaitableVoid<ZeroTask.Awa
 
 	public Awaiter GetAwaiter() => new(this);
 
-	public bool Equals(ZeroTask other) => _underlyingTask == other._underlyingTask && _token == other._token && _error == other._error;
+	public bool Equals(ZeroTask other) => _underlyingTask == other._underlyingTask && _capturedToken == other._capturedToken;
 	public override bool Equals(object? obj) => obj is ZeroTask other && Equals(other);
-	public override int32 GetHashCode() => _underlyingTask?.GetHashCode() ?? _error?.GetHashCode() ?? 0;
+	public override int32 GetHashCode() => _underlyingTask?.GetHashCode() ?? 0;
 	public static bool operator ==(ZeroTask lhs, ZeroTask rhs) => lhs.Equals(rhs);
 	public static bool operator !=(ZeroTask lhs, ZeroTask rhs) => !lhs.Equals(rhs);
 
-	public bool IsCompleted => _underlyingTask is null || _underlyingTask.GetStatus(_token) != EUnderlyingZeroTaskStatus.Pending;
-
-	private ZeroTask(Exception exception) => _error = ExceptionDispatchInfo.Capture(exception);
-
-	private ZeroTask(IUnderlyingZeroTaskVoid? task, uint64 token)
-	{
-		_underlyingTask = task;
-		_token = token;
-	}
+	public bool IsCompleted => _underlyingTask is null || _underlyingTask.GetStatus(_capturedToken) != EUnderlyingZeroTaskStatus.Pending;
 
 	private void GetResult()
 	{
 		if (_underlyingTask is not null)
 		{
-			_underlyingTask.GetResult(_token);
+			_underlyingTask.GetResult(_capturedToken);
 		}
 	}
 	
@@ -51,7 +42,7 @@ public readonly partial struct ZeroTask : IZeroTask, IAwaitableVoid<ZeroTask.Awa
 		}
 		else
 		{
-			_underlyingTask.SetStateMachine(stateMachine, _token);
+			_underlyingTask.SetStateMachine(stateMachine, _capturedToken);
 		}
 	}
 
@@ -63,13 +54,12 @@ public readonly partial struct ZeroTask : IZeroTask, IAwaitableVoid<ZeroTask.Awa
 		}
 		else
 		{
-			_underlyingTask.SetContinuation(continuation, _token);
+			_underlyingTask.SetContinuation(continuation, _capturedToken);
 		}
 	}
 	
-	private readonly IUnderlyingZeroTaskVoid? _underlyingTask;
-	private readonly uint64 _token;
-	private readonly ExceptionDispatchInfo? _error;
+	private readonly IUnderlyingZeroTaskVoid? _underlyingTask = underlyingTask;
+	private readonly UnderlyingZeroTaskToken _capturedToken = underlyingTask.Token;
 
 }
 

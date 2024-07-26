@@ -22,22 +22,22 @@ internal class ZeroTask_AsyncStateMachine : IPoolableUnderlyingZeroTaskVoid<Zero
 	public void Deinitialize()
 	{
 		_comp.Deinitialize();
-		Task = ZeroTask.FromUnderlyingTask(this, Token);
+		Task = ZeroTask.FromUnderlyingTask(this);
 	}
 
-	public EUnderlyingZeroTaskStatus GetStatus(uint64 token) => _comp.GetStatus(token);
+	public EUnderlyingZeroTaskStatus GetStatus(UnderlyingZeroTaskToken token) => _comp.GetStatus(token);
 	
-	public void SetStateMachine(IAsyncStateMachine stateMachine, uint64 token) => _comp.SetStateMachine(stateMachine, token);
+	public void SetStateMachine(IAsyncStateMachine stateMachine, UnderlyingZeroTaskToken token) => _comp.SetStateMachine(stateMachine, token);
 
-	public void SetContinuation(Action continuation, uint64 token) => _comp.SetContinuation(continuation, token);
+	public void SetContinuation(Action continuation, UnderlyingZeroTaskToken token) => _comp.SetContinuation(continuation, token);
 	
-	public void GetResult(uint64 token) => _comp.GetResult(token);
+	public void GetResult(UnderlyingZeroTaskToken token) => _comp.GetResult(token);
 
 	public void SetResult() => _comp.SetResult();
 
 	public void SetException(Exception exception) => _comp.SetException(exception);
 	
-	public uint64 Token => _comp.Token;
+	public UnderlyingZeroTaskToken Token => _comp.Token;
 	
 	public ZeroTask_AsyncStateMachine? PoolNext { get; set; }
 	

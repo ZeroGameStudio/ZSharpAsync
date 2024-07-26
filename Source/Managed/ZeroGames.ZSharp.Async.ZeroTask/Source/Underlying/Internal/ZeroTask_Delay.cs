@@ -21,13 +21,13 @@ internal class ZeroTask_Delay : IPoolableUnderlyingZeroTaskVoid<ZeroTask_Delay>
 
 	public void Deinitialize() => _comp.Deinitialize();
 
-	public EUnderlyingZeroTaskStatus GetStatus(uint64 token) => _comp.GetStatus(token);
+	public EUnderlyingZeroTaskStatus GetStatus(UnderlyingZeroTaskToken token) => _comp.GetStatus(token);
 	
-	public void SetStateMachine(IAsyncStateMachine stateMachine, uint64 token) => _comp.SetStateMachine(stateMachine, token);
+	public void SetStateMachine(IAsyncStateMachine stateMachine, UnderlyingZeroTaskToken token) => _comp.SetStateMachine(stateMachine, token);
 
-	public void SetContinuation(Action continuation, uint64 token) => _comp.SetContinuation(continuation, token);
+	public void SetContinuation(Action continuation, UnderlyingZeroTaskToken token) => _comp.SetContinuation(continuation, token);
 	
-	public void GetResult(uint64 token) => _comp.GetResult(token);
+	public void GetResult(UnderlyingZeroTaskToken token) => _comp.GetResult(token);
 
 	public void Run(double delayTimeMs)
 	{
@@ -43,7 +43,7 @@ internal class ZeroTask_Delay : IPoolableUnderlyingZeroTaskVoid<ZeroTask_Delay>
 		}, this);
 	}
 
-	public uint64 Token => _comp.Token;
+	public UnderlyingZeroTaskToken Token => _comp.Token;
 
 	public ZeroTask_Delay? PoolNext { get; set; }
 
