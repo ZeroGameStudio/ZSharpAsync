@@ -23,8 +23,9 @@ ZSharpAsync 是 ZSharp 的扩展插件，实现了一套适用于虚幻引擎的
 
 **为什么要有 ZeroTask**
 
-原生的 Task 使用线程池进行调度，而 UObject 不是线程安全的，与引擎交互的代码大部分都需要跑在虚幻引擎的 Game Thread。这就要求我们有一种能够方便地将代码调度到该线程的机制。同时，使用 Task 会频繁分配堆内存，对于游戏这种高度并行的系统来说，这些频繁的内存分配带来的 GC 压力是肉眼可见的。
+原生的 Task 使用线程池进行调度，而 UObject 不是线程安全的，与引擎交互的代码大部分都需要跑在虚幻引擎的 Game Thread（主线程）。这就要求我们有一套针对于主线程的异步模型。同时，使用 Task 会频繁分配堆内存，对于游戏这种高度并行的系统来说，这些频繁的内存分配带来的 GC 压力是肉眼可见的。
 ZeroTask 并不阻止用户使用其他任务类型。对于不与引擎交互的代码，如纯托管侧的计算，仍然可以使用 Task 或 ValueTask 将任务指派给其他线程来提高效率。
+需要注意的是，ZeroTask 是单线程的异步任务，只支持在主线程运行，在其他线程运行 ZeroTask 将会抛出异常。这是一个折中方案，一方面 ZeroTask 确实有在其他线程使用的潜在需求；另一方面，处理线程问题会影响性能。综合考量，我们认为 ZeroTask 绝大多数时候都只在主线程运行，为一些极端需求牺牲整体性能和开发成本是不值得的，因此我们在设计上直接将 ZeroTask 限制在了主线程。
 ## 内置的异步操作
 ```C#
 //////////////////////////////// 事件循环与时间相关
@@ -85,16 +86,6 @@ await ptr.LoadAsync(); // 贴图加载完成后继续执行
 
 // 可以等待一个 CVar 相关的谓词第一次为真。谓词第一次为真时，如果在主线程，则直接完成，否则使用 ZSharpSynchronizationContext 调度到主线程。
 await ZeroTask.CVar("t.maxfps", value => int.Parse(value) < 10); // 帧率小于10时继续执行
-
-//////////////////////////////// 线程相关
-// 可以将任务调度到主线程。如果已经在主线程，则同步地继续执行。
-await ZeroTask.SwitchToGameThread();
-
-// 可以将任务调度到 ZSharpSynchronizationContext，进而调度到主线程。如果已经在主线程，则同步地继续执行。
-await ZeroTask.SendToSynchronizationContext();
-
-// 可以将任务调度到 ZSharpSynchronizationContext，进而调度到主线程。无论如何都会异步执行。
-await ZeroTask.PostToSynchronizationContext();
 
 //////////////////////////////// 组合
 // 可以对任务进行串联
