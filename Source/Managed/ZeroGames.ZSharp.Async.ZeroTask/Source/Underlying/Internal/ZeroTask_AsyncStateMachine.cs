@@ -47,7 +47,7 @@ internal class ZeroTask_AsyncStateMachine : IPoolableUnderlyingZeroTaskVoid<Zero
 	
 	public ZeroTask Task { get; private set; }
 
-	private static readonly UnderlyingZeroTaskPool<ZeroTask_AsyncStateMachine> _pool = new();
+	private static readonly UnderlyingZeroTaskPool<ZeroTask_AsyncStateMachine> _pool;
 
 	private PoolableUnderlyingZeroTaskComponentVoid _comp;
 

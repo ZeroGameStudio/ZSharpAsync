@@ -7,7 +7,7 @@ internal class EventLoop : IEventLoop
 
 	public EventLoopRegistration Register(EEventLoopTickingGroup group, EventLoopCallback callback, object? state, object? lifecycle)
 	{
-		ThreadHelper.ValidateGameThread("Accessing EventLoop in non-GameThread.");
+		ThreadHelper.ValidateGameThread();
 		if (ReferenceEquals(callback, lifecycle))
 		{
 			throw new InvalidOperationException();
@@ -30,13 +30,13 @@ internal class EventLoop : IEventLoop
 
 	public void Unregister(EventLoopRegistration registration)
 	{
-		ThreadHelper.ValidateGameThread("Accessing EventLoop in non-GameThread.");
+		ThreadHelper.ValidateGameThread();
 		InternalUnregister(registration);
 	}
 
 	public void UnregisterAll(object lifecycle)
 	{
-		ThreadHelper.ValidateGameThread("Accessing EventLoop in non-GameThread.");
+		ThreadHelper.ValidateGameThread();
 		InternalUnregisterAll(lifecycle);
 	}
 

@@ -76,7 +76,7 @@ internal class ZeroTask_Delay : IPoolableUnderlyingZeroTaskVoid<ZeroTask_Delay>
 
 	public ZeroTask_Delay? PoolNext { get; set; }
 
-	private static readonly UnderlyingZeroTaskPool<ZeroTask_Delay> _pool = new();
+	private static readonly UnderlyingZeroTaskPool<ZeroTask_Delay> _pool;
 
 	private PoolableUnderlyingZeroTaskComponentVoid _comp;
 

@@ -10,10 +10,32 @@ public readonly partial struct ZeroTask(IUnderlyingZeroTaskVoid underlyingTask) 
 	
 	public readonly struct Awaiter(ZeroTask _task) : IAwaiterVoid
 	{
-		public void OnCompleted(IAsyncStateMachine stateMachine) => _task.SetStateMachine(stateMachine);
-		public void OnCompleted(Action continuation) => _task.SetContinuation(continuation);
-		public void GetResult() => _task.GetResult();
-		public bool IsCompleted => _task.IsCompleted;
+		public void OnCompleted(IAsyncStateMachine stateMachine)
+		{
+			ThreadHelper.ValidateGameThread();
+			_task.SetStateMachine(stateMachine);
+		}
+
+		public void OnCompleted(Action continuation)
+		{
+			ThreadHelper.ValidateGameThread();
+			_task.SetContinuation(continuation);
+		}
+
+		public void GetResult()
+		{
+			ThreadHelper.ValidateGameThread();
+			_task.GetResult();
+		}
+
+		public bool IsCompleted
+		{
+			get
+			{
+				ThreadHelper.ValidateGameThread();
+				return _task.IsCompleted;
+			}
+		}
 	}
 
 	public Awaiter GetAwaiter() => new(this);
@@ -24,7 +46,7 @@ public readonly partial struct ZeroTask(IUnderlyingZeroTaskVoid underlyingTask) 
 	public static bool operator ==(ZeroTask lhs, ZeroTask rhs) => lhs.Equals(rhs);
 	public static bool operator !=(ZeroTask lhs, ZeroTask rhs) => !lhs.Equals(rhs);
 
-	public bool IsCompleted => _underlyingTask is null || _underlyingTask.GetStatus(_capturedToken) != EUnderlyingZeroTaskStatus.Pending;
+	private bool IsCompleted => _underlyingTask is null || _underlyingTask.GetStatus(_capturedToken) != EUnderlyingZeroTaskStatus.Pending;
 
 	private void GetResult()
 	{
