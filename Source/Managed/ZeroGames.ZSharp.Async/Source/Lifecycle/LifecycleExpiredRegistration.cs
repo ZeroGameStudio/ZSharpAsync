@@ -11,6 +11,7 @@ public readonly struct LifecycleExpiredRegistration(Lifecycle lifecycle, uint64 
 	public static bool operator==(LifecycleExpiredRegistration lhs, LifecycleExpiredRegistration rhs) => lhs.Equals(rhs);
 	public static bool operator!=(LifecycleExpiredRegistration lhs, LifecycleExpiredRegistration rhs) => !lhs.Equals(rhs);
 
+	// No need to validate game thread because Lifecycle does.
 	public void Unregister() => _lifecycle.UnregisterOnExpired(this);
 
 	private readonly Lifecycle _lifecycle = lifecycle;

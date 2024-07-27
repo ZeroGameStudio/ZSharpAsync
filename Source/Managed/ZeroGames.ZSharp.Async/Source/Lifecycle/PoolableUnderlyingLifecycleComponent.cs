@@ -19,98 +19,45 @@ public class PoolableUnderlyingLifecycleComponent(IUnderlyingLifecycle lifecycle
 	
 	public LifecycleExpiredRegistration RegisterOnExpired(Action<IUnderlyingLifecycle, object?> callback, object? state, UnderlyingLifecycleToken token)
 	{
-		lock (this)
-		{
-			ValidateToken(token);
-			if (IsExpired(token))
-			{
-				if (ThreadHelper.IsInGameThread)
-				{
-					callback(_lifecycle, state);
-				}
-				else
-				{
-					IMasterAssemblyLoadContext.Get()!.SynchronizationContext.Send(s => callback(_lifecycle, s), state);
-				}
-                
-				return default;
-			}
-			else
-			{
-				_registry ??= new();
-				LifecycleExpiredRegistration reg = new(new(_lifecycle), ++_handle);
-				_registry[reg] = new(callback, state);
+		ValidateToken(token);
+		_registry ??= new();
+		LifecycleExpiredRegistration reg = new(new(_lifecycle), ++_handle);
+		_registry[reg] = new(callback, state);
 
-				return reg;
-			}
-		}
+		return reg;
 	}
 
 	public void UnregisterOnExpired(LifecycleExpiredRegistration registration, UnderlyingLifecycleToken token)
 	{
-		lock (this)
-		{
-			if (!IsExpired(token))
-			{
-				_registry?.Remove(registration);
-			}
-		}
+		ValidateToken(token);
+		_registry?.Remove(registration);
 	}
 
 	public bool IsExpired(UnderlyingLifecycleToken token)
 	{
-		lock (this)
-		{
-			return _token != token || _isExpired;
-		}
+		ValidateToken(token);
+		return _isExpired;
 	}
 
 	public void SetExpired()
 	{
-		lock (this)
+		if (_isExpired)
 		{
-			if (_isExpired)
+			throw new InvalidOperationException();
+		}
+		
+		_isExpired = true;
+		if (_registry is not null)
+		{
+			foreach (var pair in _registry)
 			{
-				throw new InvalidOperationException();
-			}
-			
-			_isExpired = true;
-			bool isInGameThread = ThreadHelper.IsInGameThread;
-			if (_registry is not null)
-			{
-				foreach (var pair in _registry)
-				{
-					Rec rec = pair.Value;
-					if (isInGameThread)
-					{
-						rec.Callback(_lifecycle, rec.State);
-					}
-					else
-					{
-						IMasterAssemblyLoadContext.Get()!.SynchronizationContext.Send(_ => rec.Callback(_lifecycle, rec.State), null);
-					}
-				}
+				Rec rec = pair.Value;
+				rec.Callback(_lifecycle, rec.State);
 			}
 		}
 	}
 
-	public UnderlyingLifecycleToken Token
-	{
-		get
-		{
-			lock (this)
-			{
-				return _token;
-			}
-		}
-		private set
-		{
-			lock (this)
-			{
-				_token = _token.Next;
-			}
-		}
-	}
+	public UnderlyingLifecycleToken Token { get; private set; }
 	
 	private void ValidateToken(UnderlyingLifecycleToken token)
 	{
@@ -125,7 +72,6 @@ public class PoolableUnderlyingLifecycleComponent(IUnderlyingLifecycle lifecycle
 	private IUnderlyingLifecycle _lifecycle = lifecycle;
 	private uint64 _handle;
 	
-	private UnderlyingLifecycleToken _token;
 	private bool _isExpired;
 	private Dictionary<LifecycleExpiredRegistration, Rec>? _registry;
 

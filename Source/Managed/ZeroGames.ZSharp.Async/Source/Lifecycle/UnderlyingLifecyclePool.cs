@@ -2,46 +2,39 @@
 
 namespace ZeroGames.ZSharp.Async;
 
-public class UnderlyingLifecyclePool<T> where T : class, IPoolableUnderlyingLifecycle<T>
+public struct UnderlyingLifecyclePool<T> where T : class, IPoolableUnderlyingLifecycle<T>
 {
 	
 	public T Pop()
 	{
-		lock (_lock)
+		if (_head is null)
 		{
-			if (_head is null)
-			{
-				return T.Create();
-			}
-			else
-			{
-				T task = _head;
-				task.Initialize();
-				_head = task.PoolNext;
-				return task;
-			}
+			return T.Create();
+		}
+		else
+		{
+			T lifecycle = _head;
+			lifecycle.Initialize();
+			_head = lifecycle.PoolNext;
+			return lifecycle;
 		}
 	}
 
-	public void Push(T task)
+	public void Push(T lifecycle)
 	{
-		lock (_lock)
-		{
-			task.Deinitialize();
+		lifecycle.Deinitialize();
 		
-			if (_head is null)
-			{
-				_head = task;
-			}
-			else
-			{
-				task.PoolNext = _head;
-				_head = task;
-			}
+		if (_head is null)
+		{
+			_head = lifecycle;
+		}
+		else
+		{
+			lifecycle.PoolNext = _head;
+			_head = lifecycle;
 		}
 	}
 
 	private T? _head;
-	private readonly object _lock = new();
 
 }
