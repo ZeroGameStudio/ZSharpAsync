@@ -66,6 +66,7 @@ internal class Lifecycle_ExplicitLifecycle : IPoolableUnderlyingLifecycle<Lifecy
 
 	private static void HandleExpired_GameThread(IExplicitLifecycle _, object? @this)
 	{
+		// Although the target says it IsGameThreadOnly but it depends on whether it implements properly, so we do a check here.
 		ThreadHelper.ValidateGameThread();
 		UnsafeHandleExpired(_, @this);
 	}
