@@ -24,7 +24,7 @@ public class PoolableUnderlyingLifecycleComponent(IUnderlyingLifecycle lifecycle
 			ValidateToken(token);
 			if (IsExpired(token))
 			{
-				if (UnrealEngineStatics.IsInGameThread())
+				if (ThreadHelper.IsInGameThread)
 				{
 					callback(_lifecycle, state);
 				}
@@ -75,7 +75,7 @@ public class PoolableUnderlyingLifecycleComponent(IUnderlyingLifecycle lifecycle
 			}
 			
 			_isExpired = true;
-			bool isInGameThread = UnrealEngineStatics.IsInGameThread();
+			bool isInGameThread = ThreadHelper.IsInGameThread;
 			if (_registry is not null)
 			{
 				foreach (var pair in _registry)

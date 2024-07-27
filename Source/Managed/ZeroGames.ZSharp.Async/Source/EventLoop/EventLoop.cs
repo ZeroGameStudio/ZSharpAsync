@@ -7,6 +7,7 @@ internal class EventLoop : IEventLoop
 
 	public EventLoopRegistration Register(EEventLoopTickingGroup group, EventLoopCallback callback, object? state, object? lifecycle)
 	{
+		ThreadHelper.ValidateGameThread("Accessing EventLoop in non-GameThread.");
 		if (ReferenceEquals(callback, lifecycle))
 		{
 			throw new InvalidOperationException();
@@ -27,81 +28,86 @@ internal class EventLoop : IEventLoop
 		return InternalRegister(group, callback, state, lifecycle);
 	}
 
-	public void Unregister(EventLoopRegistration registration) => InternalUnregister(registration);
+	public void Unregister(EventLoopRegistration registration)
+	{
+		ThreadHelper.ValidateGameThread("Accessing EventLoop in non-GameThread.");
+		InternalUnregister(registration);
+	}
 
-	public void UnregisterAll(object lifecycle) => InternalUnregisterAll(lifecycle);
+	public void UnregisterAll(object lifecycle)
+	{
+		ThreadHelper.ValidateGameThread("Accessing EventLoop in non-GameThread.");
+		InternalUnregisterAll(lifecycle);
+	}
 
 	internal static EventLoop Get() => _singleton;
 	
 	internal void NotifyEvent(EEventLoopTickingGroup group, float worldDeltaTime, float realDeltaTime, double worldElapsedTime, double realElapsedTime)
 	{
-		lock (_registryLock)
-		{
-			_isNotifing = true;
+		_isNotifing = true;
 			
-			try
+		try
+		{
+			if (group == EEventLoopTickingGroup.PreWorldTick)
 			{
-				if (group == EEventLoopTickingGroup.PreWorldTick)
-				{
-					_worldAccumulatedTime += worldDeltaTime;
-					_realAccumulatedTime += realDeltaTime;
-				}
+				_worldAccumulatedTime += worldDeltaTime;
+				_realAccumulatedTime += realDeltaTime;
+			}
 				
-				EventLoopArgs args = new()
-				{
-					TickingGroup = group,
-					WorldDeltaTime = worldDeltaTime,
-					RealDeltaTime = realDeltaTime,
-					WorldElapsedTime = worldElapsedTime,
-					RealElapsedTime = realElapsedTime,
-					WorldAccumulatedTime = _worldAccumulatedTime,
-					RealAccumulatedTime = _realAccumulatedTime,
-				};
+			EventLoopArgs args = new()
+			{
+				TickingGroup = group,
+				WorldDeltaTime = worldDeltaTime,
+				RealDeltaTime = realDeltaTime,
+				WorldElapsedTime = worldElapsedTime,
+				RealElapsedTime = realElapsedTime,
+				WorldAccumulatedTime = _worldAccumulatedTime,
+				RealAccumulatedTime = _realAccumulatedTime,
+			};
 				
-				if (_registry.TryGetValue(group, out var registry))
+			if (_registry.TryGetValue(group, out var registry))
+			{
+				bool mayHaveSideEffects = false;
+				EventLoopRegistration stale = default;
+				foreach (var pair in registry)
 				{
-					bool mayHaveSideEffects = false;
-					EventLoopRegistration stale = default;
-					foreach (var pair in registry)
+					Rec rec = pair.Value;
+					if (IsValidRec(rec))
 					{
-						Rec rec = pair.Value;
-						if (IsValidRec(rec))
+						try
 						{
-							try
-							{
-								rec.Callback!(args, rec.State);
-							}
-							catch (Exception ex)
-							{
-								Logger.Error($"Unhandled Exception Detected in Event Loop.\n{ex}");
-							}
-							finally
-							{
-								mayHaveSideEffects = true;
-							}
+							rec.Callback!(args, rec.State);
 						}
-						else
+						catch (Exception ex)
 						{
-							stale = pair.Key;
+							Logger.Error($"Unhandled Exception Detected in Event Loop.\n{ex}");
+						}
+						finally
+						{
+							mayHaveSideEffects = true;
 						}
 					}
-
-					// Clear only one stale registration because we run very frequently.
-					if (stale.IsValid)
+					else
 					{
-						registry.Remove(stale);
-					}
-
-					if (mayHaveSideEffects)
-					{
-						FlushDeferredRegistry();
+						stale = pair.Key;
 					}
 				}
+
+				// Clear only one stale registration because we run very frequently.
+				if (stale.IsValid)
+				{
+					registry.Remove(stale);
+				}
+
+				if (mayHaveSideEffects)
+				{
+					FlushDeferredRegistry();
+				}
 			}
-			finally
-			{
-				_isNotifing = false;
-			}
+		}
+		finally
+		{
+			_isNotifing = false;
 		}
 	}
 	
@@ -122,12 +128,7 @@ internal class EventLoop : IEventLoop
 			return false;
 		}
 
-		if (UnrealEngineStatics.IsInGameThread() && _isNotifing && Traverse(_deferredRegistry, registration))
-		{
-			return;
-		}
-
-		lock (_registryLock)
+		if (!_isNotifing || !Traverse(_deferredRegistry, registration))
 		{
 			Traverse(_registry, registration);
 		}
@@ -135,15 +136,7 @@ internal class EventLoop : IEventLoop
 
 	private EventLoopRegistration InternalRegister(EEventLoopTickingGroup group, EventLoopCallback callback, object? state, object? lifecycle)
 	{
-		if (UnrealEngineStatics.IsInGameThread() && _isNotifing)
-		{
-			return InternalRegisterTo(_deferredRegistry, group, callback, state, lifecycle);
-		}
-
-		lock (_registryLock)
-		{
-			return InternalRegisterTo(_registry, group, callback, state, lifecycle);
-		}
+		return InternalRegisterTo(_isNotifing ? _deferredRegistry : _registry, group, callback, state, lifecycle);
 	}
 
 	private EventLoopRegistration InternalRegisterTo(Dictionary<EEventLoopTickingGroup, Dictionary<EventLoopRegistration, Rec>> registry, EEventLoopTickingGroup group, EventLoopCallback callback, object? state, object? lifecycle)
@@ -196,15 +189,13 @@ internal class EventLoop : IEventLoop
 			}
 		}
 
-		if (UnrealEngineStatics.IsInGameThread() && _isNotifing)
+		
+		if (_isNotifing)
 		{
 			Traverse(_deferredRegistry, lifecycle);
 		}
 
-		lock (_registryLock)
-		{
-			Traverse(_registry, lifecycle);
-		}
+		Traverse(_registry, lifecycle);
 	}
 
 	private void FlushDeferredRegistry()
@@ -258,7 +249,6 @@ internal class EventLoop : IEventLoop
 	private double _worldAccumulatedTime;
 	private double _realAccumulatedTime;
 	
-	private object _registryLock = new();
 	private Dictionary<EEventLoopTickingGroup, Dictionary<EventLoopRegistration, Rec>> _registry = new();
 	private Dictionary<EEventLoopTickingGroup, Dictionary<EventLoopRegistration, Rec>> _deferredRegistry = new();
 
