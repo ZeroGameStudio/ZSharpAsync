@@ -4,22 +4,37 @@ using System.Runtime.CompilerServices;
 
 namespace ZeroGames.ZSharp.Async;
 
-public class Lifecycle_ExplicitLifecycle : IPoolableUnderlyingLifecycle<Lifecycle_ExplicitLifecycle>
+internal class Lifecycle_ExplicitLifecycle : IPoolableUnderlyingLifecycle<Lifecycle_ExplicitLifecycle>
 {
 
 	public static Lifecycle_ExplicitLifecycle GetFromPool(IExplicitLifecycle explicitLifecycle)
 	{
-		Lifecycle_ExplicitLifecycle lifecycle = _pool.Pop();
-		if (explicitLifecycle.IsExpired)
+		static Lifecycle_ExplicitLifecycle PopAndRegister(IExplicitLifecycle explicitLifecycle)
 		{
-			lifecycle.SetExpired();
+			Lifecycle_ExplicitLifecycle lifecycle = _pool.Pop();
+			if (explicitLifecycle.IsExpired)
+			{
+				lifecycle.SetExpired();
+			}
+			else
+			{
+				explicitLifecycle.RegisterOnExpired(HandleExpired, lifecycle);
+			}
+			
+			return lifecycle;
+		}
+
+		if (explicitLifecycle.IsGameThreadOnly)
+		{
+			return PopAndRegister(explicitLifecycle);
 		}
 		else
 		{
-			explicitLifecycle.RegisterOnExpired(static (_, @this) => Unsafe.As<Lifecycle_ExplicitLifecycle>(@this!).SetExpired(), lifecycle);
+			lock (explicitLifecycle.SyncRoot)
+			{
+				return PopAndRegister(explicitLifecycle);
+			}
 		}
-
-		return lifecycle;
 	}
 	
 	public static Lifecycle_ExplicitLifecycle Create()
@@ -48,6 +63,11 @@ public class Lifecycle_ExplicitLifecycle : IPoolableUnderlyingLifecycle<Lifecycl
 	public UnderlyingLifecycleToken Token => _comp.Token;
 
 	public Lifecycle_ExplicitLifecycle? PoolNext { get; set; }
+
+	private static void HandleExpired(IExplicitLifecycle _, object? @this)
+	{
+		Unsafe.As<Lifecycle_ExplicitLifecycle>(@this!).SetExpired();
+	}
 
 	private void SetExpired()
 	{
