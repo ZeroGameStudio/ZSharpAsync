@@ -9,7 +9,7 @@ internal class Lifecycle_ExplicitLifecycle : IPoolableUnderlyingLifecycle<Lifecy
 
 	public static Lifecycle_ExplicitLifecycle GetFromPool(IExplicitLifecycle explicitLifecycle)
 	{
-		static Lifecycle_ExplicitLifecycle PopAndRegister(IExplicitLifecycle explicitLifecycle)
+		static Lifecycle_ExplicitLifecycle PopAndRegister(IExplicitLifecycle explicitLifecycle, bool isGameThreadOnly)
 		{
 			Lifecycle_ExplicitLifecycle lifecycle = _pool.Pop();
 			if (explicitLifecycle.IsExpired)
@@ -18,7 +18,7 @@ internal class Lifecycle_ExplicitLifecycle : IPoolableUnderlyingLifecycle<Lifecy
 			}
 			else
 			{
-				explicitLifecycle.RegisterOnExpired(HandleExpired, lifecycle);
+				explicitLifecycle.RegisterOnExpired(isGameThreadOnly ? HandleExpired_GameThread : HandleExpired_AnyThread, lifecycle);
 			}
 			
 			return lifecycle;
@@ -26,13 +26,13 @@ internal class Lifecycle_ExplicitLifecycle : IPoolableUnderlyingLifecycle<Lifecy
 
 		if (explicitLifecycle.IsGameThreadOnly)
 		{
-			return PopAndRegister(explicitLifecycle);
+			return PopAndRegister(explicitLifecycle, true);
 		}
 		else
 		{
 			lock (explicitLifecycle.SyncRoot)
 			{
-				return PopAndRegister(explicitLifecycle);
+				return PopAndRegister(explicitLifecycle, false);
 			}
 		}
 	}
@@ -64,7 +64,30 @@ internal class Lifecycle_ExplicitLifecycle : IPoolableUnderlyingLifecycle<Lifecy
 
 	public Lifecycle_ExplicitLifecycle? PoolNext { get; set; }
 
-	private static void HandleExpired(IExplicitLifecycle _, object? @this)
+	private static void HandleExpired_GameThread(IExplicitLifecycle _, object? @this)
+	{
+		ThreadHelper.ValidateGameThread();
+		UnsafeHandleExpired(_, @this);
+	}
+
+	private static void HandleExpired_AnyThread(IExplicitLifecycle _, object? @this)
+	{
+		if (ThreadHelper.IsInGameThread)
+		{
+			UnsafeHandleExpired(_, @this);
+		}
+		else
+		{
+			ThreadHelper.GameThreadSynchronizationContext.Send(UnsafeHandleExpired, @this);
+		}
+	}
+	
+	private static void UnsafeHandleExpired(IExplicitLifecycle _, object? @this)
+	{
+		Unsafe.As<Lifecycle_ExplicitLifecycle>(@this!).SetExpired();
+	}
+	
+	private static void UnsafeHandleExpired(object? @this)
 	{
 		Unsafe.As<Lifecycle_ExplicitLifecycle>(@this!).SetExpired();
 	}
@@ -75,7 +98,7 @@ internal class Lifecycle_ExplicitLifecycle : IPoolableUnderlyingLifecycle<Lifecy
 		_pool.Push(this);
 	}
 	
-	private static readonly UnderlyingLifecyclePool<Lifecycle_ExplicitLifecycle> _pool = new();
+	private static UnderlyingLifecyclePool<Lifecycle_ExplicitLifecycle> _pool;
 	
 	private PoolableUnderlyingLifecycleComponent _comp;
 

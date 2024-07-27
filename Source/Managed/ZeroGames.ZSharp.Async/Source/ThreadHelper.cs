@@ -1,6 +1,7 @@
 ﻿// Copyright Zero Games. All Rights Reserved.
 
 using System.Runtime.CompilerServices;
+using System.Threading;
 
 namespace ZeroGames.ZSharp.Async;
 
@@ -21,6 +22,8 @@ public static class ThreadHelper
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		get => UnrealEngineStatics.IsInGameThread;
 	}
+
+	public static SynchronizationContext GameThreadSynchronizationContext => IMasterAssemblyLoadContext.Get()!.SynchronizationContext;
 
 }
 
