@@ -149,6 +149,8 @@ internal static class AsyncZeroTaskMethodBuilderShared
 	
 	public static void AwaitOnCompleted<TAwaiter, TStateMachine>(ref TAwaiter awaiter, ref TStateMachine stateMachine) where TAwaiter : INotifyCompletion where TStateMachine : IAsyncStateMachine
 	{
+		ThreadHelper.ValidateGameThread();
+		
 		// IZeroTaskAwaiter is internal and only implemented by struct ZeroTask.Awaiter.
 		// The null tests here ensure that the jit can optimize away the interface tests when TAwaiter is a ref type.
 		if (default(TAwaiter) is not null && awaiter is IZeroTaskAwaiter zeroAwaiter)
@@ -165,6 +167,8 @@ internal static class AsyncZeroTaskMethodBuilderShared
 	
 	public static void AwaitUnsafeOnCompleted<TAwaiter, TStateMachine>(ref TAwaiter awaiter, ref TStateMachine stateMachine) where TAwaiter : ICriticalNotifyCompletion where TStateMachine : IAsyncStateMachine
 	{
+		ThreadHelper.ValidateGameThread();
+		
 		TStateMachine copy = stateMachine;
 		awaiter.UnsafeOnCompleted(() => { copy.MoveNext(); });
 	}

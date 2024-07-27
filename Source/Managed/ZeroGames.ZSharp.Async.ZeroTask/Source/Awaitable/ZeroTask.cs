@@ -42,12 +42,6 @@ public readonly partial struct ZeroTask : IZeroTask, IAwaitable<ZeroTask.Awaiter
 
 	}
 
-	public ZeroTask(IUnderlyingZeroTask underlyingTask)
-	{
-		_underlyingTask = underlyingTask;
-		_capturedToken = underlyingTask.Token;
-	}
-
 	public Awaiter GetAwaiter() => new(this);
 
 	public bool Equals(ZeroTask other) => _underlyingTask == other._underlyingTask && _capturedToken == other._capturedToken;
@@ -55,6 +49,12 @@ public readonly partial struct ZeroTask : IZeroTask, IAwaitable<ZeroTask.Awaiter
 	public override int32 GetHashCode() => _underlyingTask?.GetHashCode() ?? 0;
 	public static bool operator ==(ZeroTask lhs, ZeroTask rhs) => lhs.Equals(rhs);
 	public static bool operator !=(ZeroTask lhs, ZeroTask rhs) => !lhs.Equals(rhs);
+	
+	internal ZeroTask(IUnderlyingZeroTask underlyingTask)
+	{
+		_underlyingTask = underlyingTask;
+		_capturedToken = underlyingTask.Token;
+	}
 
 	private bool IsCompleted => _underlyingTask is null || _underlyingTask.GetStatus(_capturedToken) != EUnderlyingZeroTaskStatus.Pending;
 
@@ -133,17 +133,6 @@ public readonly partial struct ZeroTask<TResult> : IZeroTask<TResult>, IAwaitabl
 
 	}
 
-	public ZeroTask(TResult inlineResult)
-	{
-		_inlineResult = inlineResult;
-	}
-
-	public ZeroTask(IUnderlyingZeroTask<TResult> underlyingTask)
-	{
-		_underlyingTask = underlyingTask;
-		_capturedToken = underlyingTask.Token;
-	}
-
 	public Awaiter GetAwaiter() => new(this);
 
 	public bool Equals(ZeroTask<TResult> other) => _underlyingTask == other._underlyingTask && _capturedToken == other._capturedToken;
@@ -160,6 +149,17 @@ public readonly partial struct ZeroTask<TResult> : IZeroTask<TResult>, IAwaitabl
 		}
 
 		return new(_underlyingTask);
+	}
+	
+	internal ZeroTask(TResult inlineResult)
+	{
+		_inlineResult = inlineResult;
+	}
+
+	internal ZeroTask(IUnderlyingZeroTask<TResult> underlyingTask)
+	{
+		_underlyingTask = underlyingTask;
+		_capturedToken = underlyingTask.Token;
 	}
 
 	private bool IsCompleted => _underlyingTask is null || _underlyingTask.GetStatus(_capturedToken) != EUnderlyingZeroTaskStatus.Pending;

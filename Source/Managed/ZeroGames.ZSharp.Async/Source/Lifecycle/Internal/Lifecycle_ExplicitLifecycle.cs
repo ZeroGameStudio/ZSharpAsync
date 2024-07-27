@@ -16,8 +16,9 @@ public class Lifecycle_ExplicitLifecycle : IPoolableUnderlyingLifecycle<Lifecycl
 		}
 		else
 		{
-			explicitLifecycle.RegisterOnExpired((_, @this) => Unsafe.As<Lifecycle_ExplicitLifecycle>(@this!).SetExpired(), lifecycle);
+			explicitLifecycle.RegisterOnExpired(static (_, @this) => Unsafe.As<Lifecycle_ExplicitLifecycle>(@this!).SetExpired(), lifecycle);
 		}
+
 		return lifecycle;
 	}
 	
