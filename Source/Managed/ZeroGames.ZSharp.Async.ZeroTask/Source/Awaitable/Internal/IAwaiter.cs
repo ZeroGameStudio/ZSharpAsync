@@ -6,16 +6,12 @@ namespace ZeroGames.ZSharp.Async.ZeroTask;
 internal interface IAwaiter : IZeroTaskAwaiter
 {
 	bool IsCompleted { get; }
-}
-
-internal interface IAwaiterVoid : IAwaiter
-{
 	void GetResult();
 }
 
 internal interface IAwaiter<out TResult> : IAwaiter
 {
-	TResult GetResult();
+	new TResult GetResult();
 }
 
 

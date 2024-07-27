@@ -9,7 +9,7 @@ namespace ZeroGames.ZSharp.Async.ZeroTask;
 /// Encapsulates generic logic for a poolable underlying task.
 /// Similar to ManualResetValueTaskSourceCore.
 /// </summary>
-public struct PoolableUnderlyingZeroTaskComponentVoid
+public struct PoolableUnderlyingZeroTaskComponent<TResult>
 {
 
 	public void Initialize()
@@ -45,7 +45,7 @@ public struct PoolableUnderlyingZeroTaskComponentVoid
 		return _error.SourceException is LifecycleExpiredException || _error.SourceException is OperationCanceledException ? EUnderlyingZeroTaskStatus.Canceled : EUnderlyingZeroTaskStatus.Faulted;
 	}
 
-	public void GetResult(UnderlyingZeroTaskToken token)
+	public TResult GetResult(UnderlyingZeroTaskToken token)
 	{
 		ValidateToken(token);
 
@@ -55,6 +55,7 @@ public struct PoolableUnderlyingZeroTaskComponentVoid
 		}
 		
 		_error?.Throw();
+		return _result;
 	}
 	
 	public void SetStateMachine(IAsyncStateMachine stateMachine, UnderlyingZeroTaskToken token)
@@ -71,8 +72,9 @@ public struct PoolableUnderlyingZeroTaskComponentVoid
 		_continuation = continuation;
 	}
 
-	public void SetResult()
+	public void SetResult(TResult result)
 	{
+		_result = result;
 		SignalCompletion();
 	}
 
@@ -122,6 +124,7 @@ public struct PoolableUnderlyingZeroTaskComponentVoid
 	private bool _isCompleted;
 	private IAsyncStateMachine? _stateMachine;
 	private Action? _continuation;
+	private TResult _result;
 	private ExceptionDispatchInfo? _error;
 
 }

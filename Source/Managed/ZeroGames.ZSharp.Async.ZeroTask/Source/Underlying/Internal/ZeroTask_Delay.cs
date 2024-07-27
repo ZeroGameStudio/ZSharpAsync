@@ -4,7 +4,7 @@ using System.Runtime.CompilerServices;
 
 namespace ZeroGames.ZSharp.Async.ZeroTask;
 
-internal class ZeroTask_Delay : IPoolableUnderlyingZeroTaskVoid<ZeroTask_Delay>
+internal class ZeroTask_Delay : IPoolableUnderlyingZeroTask<AsyncVoid, ZeroTask_Delay>
 {
 
 	public static ZeroTask_Delay GetFromPool(double delayTimeMs, Lifecycle lifecycle)
@@ -34,10 +34,12 @@ internal class ZeroTask_Delay : IPoolableUnderlyingZeroTaskVoid<ZeroTask_Delay>
 
 	public void SetContinuation(Action continuation, UnderlyingZeroTaskToken token) => _comp.SetContinuation(continuation, token);
 
-	public void GetResult(UnderlyingZeroTaskToken token)
+	void IUnderlyingZeroTask.GetResult(UnderlyingZeroTaskToken token) => GetResult(token);
+	public AsyncVoid GetResult(UnderlyingZeroTaskToken token)
 	{
-		_comp.GetResult(token);
+		AsyncVoid result = _comp.GetResult(token);
 		_pool.Push(this);
+		return result;
 	}
 
 	public void Run()
@@ -62,7 +64,7 @@ internal class ZeroTask_Delay : IPoolableUnderlyingZeroTaskVoid<ZeroTask_Delay>
 			{
 				try
 				{
-					@this._comp.SetResult();
+					@this._comp.SetResult(default);
 				}
 				finally
 				{
@@ -76,9 +78,9 @@ internal class ZeroTask_Delay : IPoolableUnderlyingZeroTaskVoid<ZeroTask_Delay>
 
 	public ZeroTask_Delay? PoolNext { get; set; }
 
-	private static readonly UnderlyingZeroTaskPool<ZeroTask_Delay> _pool;
+	private static UnderlyingZeroTaskPool<AsyncVoid, ZeroTask_Delay> _pool;
 
-	private PoolableUnderlyingZeroTaskComponentVoid _comp;
+	private PoolableUnderlyingZeroTaskComponent<AsyncVoid> _comp;
 
 	private Lifecycle _lifecycle;
 	

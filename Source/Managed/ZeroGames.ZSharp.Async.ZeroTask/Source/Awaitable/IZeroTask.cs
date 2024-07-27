@@ -7,11 +7,6 @@ public interface IZeroTask
 	
 }
 
-public interface IZeroTaskVoid : IZeroTask
-{
-	
-}
-
 public interface IZeroTask<T> : IZeroTask
 {
 	

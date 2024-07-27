@@ -5,15 +5,14 @@ namespace ZeroGames.ZSharp.Async.ZeroTask;
 public partial struct ZeroTask
 {
 	
-	public static ZeroTask FromUnderlyingTask(IUnderlyingZeroTaskVoid task) => new(task);
-	public static ZeroTask FromResult() => default;
+	public static ZeroTask FromUnderlyingTask(IUnderlyingZeroTask<AsyncVoid> task) => new(task);
 	public static ZeroTask FromException(Exception exception) => throw new NotImplementedException();
 
 	public static ZeroTask Delay(double delayTimeMs, Lifecycle lifecycle = default)
 	{
 		if (delayTimeMs <= 0.0)
 		{
-			return FromResult();
+			return CompletedTask;
 		}
 		
 		ZeroTask_Delay delay = ZeroTask_Delay.GetFromPool(delayTimeMs, lifecycle);
@@ -21,6 +20,17 @@ public partial struct ZeroTask
 		delay.Run();
 		return task;
 	}
+
+	public static ZeroTask CompletedTask => default;
+
+}
+
+public partial struct ZeroTask<TResult>
+{
+	
+	public static ZeroTask<TResult> FromUnderlyingTask(IUnderlyingZeroTask<TResult> task) => new(task);
+	public static ZeroTask<TResult> FromResult(TResult result) => new(result);
+	public static ZeroTask<TResult> FromException(Exception exception) => throw new NotImplementedException();
 
 }
 

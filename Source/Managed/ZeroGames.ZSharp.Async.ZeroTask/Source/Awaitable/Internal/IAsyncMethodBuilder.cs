@@ -12,13 +12,9 @@ internal interface IAsyncMethodBuilder<out TImpl, out TTask, TTaskAwaiter> where
 	void Start<TStateMachine>(ref TStateMachine stateMachine) where TStateMachine : IAsyncStateMachine;
 	void AwaitOnCompleted<TAwaiter, TStateMachine>(ref TAwaiter awaiter, ref TStateMachine stateMachine) where TAwaiter : INotifyCompletion where TStateMachine : IAsyncStateMachine;
 	void AwaitUnsafeOnCompleted<TAwaiter, TStateMachine>(ref TAwaiter awaiter, ref TStateMachine stateMachine) where TAwaiter : ICriticalNotifyCompletion where TStateMachine : IAsyncStateMachine;
+	void SetResult();
 	void SetException(Exception exception);
 	TTask Task { get; }
-}
-
-internal interface IAsyncMethodBuilderVoid<out TImpl, out TTask, TTaskAwaiter> : IAsyncMethodBuilder<TImpl, TTask, TTaskAwaiter> where TImpl : struct, IAsyncMethodBuilderVoid<TImpl, TTask, TTaskAwaiter> where TTask : IAwaitableVoid<TTaskAwaiter> where TTaskAwaiter : struct, IAwaiterVoid
-{
-	void SetResult();
 }
 
 internal interface IAsyncMethodBuilder<in TResult, out TImpl, out TTask, TTaskAwaiter> : IAsyncMethodBuilder<TImpl, TTask, TTaskAwaiter> where TImpl : struct, IAsyncMethodBuilder<TResult, TImpl, TTask, TTaskAwaiter> where TTask : IAwaitable<TResult, TTaskAwaiter> where TTaskAwaiter : struct, IAwaiter<TResult>
