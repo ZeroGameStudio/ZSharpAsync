@@ -17,26 +17,14 @@ public struct AsyncZeroTaskMethodBuilderVoid : IAsyncMethodBuilder<AsyncZeroTask
 	{
 		_task ??= ZeroTask_AsyncStateMachine<AsyncVoid>.GetFromPool();
 		
-		// IZeroTaskAwaiter is internal and only implemented by struct ZeroTask.Awaiter.
-		// The null tests here ensure that the jit can optimize away the interface tests when TAwaiter is a ref type.
-		if (default(TAwaiter) is not null && awaiter is IZeroTaskAwaiter zeroAwaiter)
-		{
-			zeroAwaiter.OnCompleted(stateMachine);
-		}
-		else
-		{
-			// The awaiter isn't specially known. Fall back to doing a normal await.
-			TStateMachine copy = stateMachine;
-			awaiter.OnCompleted(() => { copy.MoveNext(); });
-		}
+		AsyncZeroTaskMethodBuilderShared.AwaitOnCompleted(ref awaiter, ref stateMachine);
 	}
 
 	public void AwaitUnsafeOnCompleted<TAwaiter, TStateMachine>(ref TAwaiter awaiter, ref TStateMachine stateMachine) where TAwaiter : ICriticalNotifyCompletion where TStateMachine : IAsyncStateMachine
 	{
 		_task ??= ZeroTask_AsyncStateMachine<AsyncVoid>.GetFromPool();
 		
-		TStateMachine copy = stateMachine;
-		awaiter.UnsafeOnCompleted(() => { copy.MoveNext(); });
+		AsyncZeroTaskMethodBuilderShared.AwaitUnsafeOnCompleted(ref awaiter, ref stateMachine);
 	}
 
 	public void SetResult()
@@ -96,26 +84,14 @@ public struct AsyncZeroTaskMethodBuilder<TResult> : IAsyncMethodBuilder<TResult,
 	{
 		_task ??= ZeroTask_AsyncStateMachine<TResult>.GetFromPool();
 		
-		// IZeroTaskAwaiter is internal and only implemented by struct ZeroTask.Awaiter.
-		// The null tests here ensure that the jit can optimize away the interface tests when TAwaiter is a ref type.
-		if (default(TAwaiter) is not null && awaiter is IZeroTaskAwaiter zeroAwaiter)
-		{
-			zeroAwaiter.OnCompleted(stateMachine);
-		}
-		else
-		{
-			// The awaiter isn't specially known. Fall back to doing a normal await.
-			TStateMachine copy = stateMachine;
-			awaiter.OnCompleted(() => { copy.MoveNext(); });
-		}
+		AsyncZeroTaskMethodBuilderShared.AwaitOnCompleted(ref awaiter, ref stateMachine);
 	}
 
 	public void AwaitUnsafeOnCompleted<TAwaiter, TStateMachine>(ref TAwaiter awaiter, ref TStateMachine stateMachine) where TAwaiter : ICriticalNotifyCompletion where TStateMachine : IAsyncStateMachine
 	{
 		_task ??= ZeroTask_AsyncStateMachine<TResult>.GetFromPool();
 		
-		TStateMachine copy = stateMachine;
-		awaiter.UnsafeOnCompleted(() => { copy.MoveNext(); });
+		AsyncZeroTaskMethodBuilderShared.AwaitUnsafeOnCompleted(ref awaiter, ref stateMachine);
 	}
 
 	void IAsyncMethodBuilder<AsyncZeroTaskMethodBuilder<TResult>, ZeroTask<TResult>, ZeroTask<TResult>.Awaiter>.SetResult() => throw new NotSupportedException();
@@ -166,6 +142,33 @@ public struct AsyncZeroTaskMethodBuilder<TResult> : IAsyncMethodBuilder<TResult,
 	private ZeroTask_AsyncStateMachine<TResult>? _task;
 	private Exception? _exception;
 
+}
+
+internal static class AsyncZeroTaskMethodBuilderShared
+{
+	
+	public static void AwaitOnCompleted<TAwaiter, TStateMachine>(ref TAwaiter awaiter, ref TStateMachine stateMachine) where TAwaiter : INotifyCompletion where TStateMachine : IAsyncStateMachine
+	{
+		// IZeroTaskAwaiter is internal and only implemented by struct ZeroTask.Awaiter.
+		// The null tests here ensure that the jit can optimize away the interface tests when TAwaiter is a ref type.
+		if (default(TAwaiter) is not null && awaiter is IZeroTaskAwaiter zeroAwaiter)
+		{
+			zeroAwaiter.OnCompleted(stateMachine);
+		}
+		else
+		{
+			// The awaiter isn't specially known. Fall back to doing a normal await.
+			TStateMachine copy = stateMachine;
+			awaiter.OnCompleted(() => { copy.MoveNext(); });
+		}
+	}
+	
+	public static void AwaitUnsafeOnCompleted<TAwaiter, TStateMachine>(ref TAwaiter awaiter, ref TStateMachine stateMachine) where TAwaiter : ICriticalNotifyCompletion where TStateMachine : IAsyncStateMachine
+	{
+		TStateMachine copy = stateMachine;
+		awaiter.UnsafeOnCompleted(() => { copy.MoveNext(); });
+	}
+	
 }
 
 
