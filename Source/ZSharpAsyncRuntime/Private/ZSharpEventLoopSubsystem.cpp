@@ -68,6 +68,16 @@ bool UZSharpEventLoopSubsystem::DoesSupportWorldType(const EWorldType::Type worl
 #endif
 }
 
+void UZSharpEventLoopSubsystem::Tick(float DeltaTime)
+{
+	NotifyEvent(ZSharp::EZSharpEventLoopTickingGroup::PostWorldTimerTick);
+}
+
+TStatId UZSharpEventLoopSubsystem::GetStatId() const
+{
+	RETURN_QUICK_DECLARE_CYCLE_STAT(UZSharpEventLoopSubsystem, STATGROUP_Tickables);
+}
+
 void UZSharpEventLoopSubsystem::HandleWorldDelegate(UWorld* world, ELevelTick, float, ZSharp::EZSharpEventLoopTickingGroup group)
 {
 	if (world != GetWorld())

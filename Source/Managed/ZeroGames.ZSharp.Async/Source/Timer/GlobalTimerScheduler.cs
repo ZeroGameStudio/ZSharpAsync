@@ -2,7 +2,7 @@
 
 namespace ZeroGames.ZSharp.Async;
 
-public readonly struct TimerHandle
+public class GlobalTimerScheduler
 {
 	
 }
