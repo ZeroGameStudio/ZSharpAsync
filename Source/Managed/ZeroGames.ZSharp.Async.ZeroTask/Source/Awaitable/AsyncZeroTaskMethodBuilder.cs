@@ -53,7 +53,7 @@ public struct AsyncZeroTaskMethodBuilderVoid : IAsyncMethodBuilder<AsyncZeroTask
 		{
 			if (_task is not null)
 			{
-				return _task.Task.ToZeroTask();
+				return _task.Task;
 			}
 			else if (_exception is not null)
 			{
