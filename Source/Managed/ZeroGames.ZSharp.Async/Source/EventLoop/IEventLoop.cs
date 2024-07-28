@@ -11,6 +11,7 @@ public interface IEventLoop
 	EventLoopRegistration Register(EEventLoopTickingGroup group, EventLoopCallback callback, object? state, Lifecycle lifecycle = default);
 	void Unregister(EventLoopRegistration registration);
 	void UnregisterAll(Lifecycle lifecycle);
+	bool IsValidRegistration(EventLoopRegistration registration);
 }
 
 

@@ -28,6 +28,46 @@ internal class EventLoop : IEventLoop
 		InternalUnregisterAll(lifecycle);
 	}
 
+	public bool IsValidRegistration(EventLoopRegistration registration)
+	{
+		ThreadHelper.ValidateGameThread();
+		return InternalIsValidRegistration(registration);
+	}
+
+	private bool InternalIsValidRegistration(EventLoopRegistration registration)
+	{
+		static bool Traverse(Dictionary<EEventLoopTickingGroup, Dictionary<EventLoopRegistration, Rec>> registry, EventLoopRegistration registration, ref bool value)
+		{
+			foreach (var pair in registry)
+			{
+				foreach (var p in pair.Value)
+				{
+					if (p.Key == registration)
+					{
+						value = IsValidRec(p.Value);
+						return true;
+					}
+				}
+			}
+
+			return false;
+		}
+		
+		if (registration == default)
+		{
+			return false;
+		}
+
+		bool isValid = false;
+		if (_isNotifing && Traverse(_deferredRegistry, registration, ref isValid))
+		{
+			return isValid;
+		}
+
+		Traverse(_registry, registration, ref isValid);
+		return isValid;
+	}
+
 	internal static EventLoop Get() => _singleton;
 	
 	internal void NotifyEvent(EEventLoopTickingGroup group, float worldDeltaTime, float realDeltaTime, double worldElapsedTime, double realElapsedTime)
@@ -116,12 +156,27 @@ internal class EventLoop : IEventLoop
 			return false;
 		}
 
+		if (registration == default)
+		{
+			return;
+		}
+
 		if (!_isNotifing || !Traverse(_deferredRegistry, registration))
 		{
 			Traverse(_registry, registration);
 		}
 	}
 
+	private static bool IsValidRec(in Rec rec)
+	{
+		if (rec.Callback is null)
+		{
+			return false;
+		}
+
+		return !rec.Lifecycle.IsExpired;
+	}
+	
 	private EventLoopRegistration InternalRegister(EEventLoopTickingGroup group, EventLoopCallback callback, object? state, Lifecycle lifecycle)
 	{
 		return InternalRegisterTo(_isNotifing ? _deferredRegistry : _registry, group, callback, state, lifecycle);
@@ -194,16 +249,6 @@ internal class EventLoop : IEventLoop
 		}
 
 		innerRegistry[registration] = rec;
-	}
-
-	private bool IsValidRec(in Rec rec)
-	{
-		if (rec.Callback is null)
-		{
-			return false;
-		}
-
-		return !rec.Lifecycle.IsExpired;
 	}
 	
 	private readonly record struct Rec(EventLoopCallback? Callback, object? State, Lifecycle Lifecycle);

@@ -11,20 +11,17 @@ public readonly struct EventLoopRegistration : IEquatable<EventLoopRegistration>
 	public static bool operator==(EventLoopRegistration lhs, EventLoopRegistration rhs) => lhs.Equals(rhs);
 	public static bool operator!=(EventLoopRegistration lhs, EventLoopRegistration rhs) => !lhs.Equals(rhs);
 
-	public void Unregister()
-	{
-		_owner?.InternalUnregister(this);
-	}
+	public void Unregister() => _owner?.Unregister(this);
 	
-	public bool IsValid => _handle > 0;
+	public bool IsValid => _owner?.IsValidRegistration(this) ?? false;
 
-	internal EventLoopRegistration(EventLoop owner, uint64 handle)
+	internal EventLoopRegistration(IEventLoop owner, uint64 handle)
 	{
 		_owner = owner;
 		_handle = handle;
 	}
 
-	private readonly EventLoop? _owner;
+	private readonly IEventLoop? _owner;
 	private readonly uint64 _handle;
 
 }
