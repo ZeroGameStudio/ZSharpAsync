@@ -48,7 +48,17 @@ public readonly partial struct ReactiveLifecycle : IEquatable<ReactiveLifecycle>
 			{
 				lock (explicitLifecycle.SyncRoot)
 				{
-					return new(this, explicitLifecycle.RegisterOnExpired(callback, state));
+					return new(this, explicitLifecycle.RegisterOnExpired((lc, _) =>
+					{
+						if (ThreadHelper.IsInGameThread)
+						{
+							callback(lc, state);
+						}
+						else
+						{
+							ThreadHelper.GameThreadSynchronizationContext.Send(_ => callback(lc, state), null);
+						}
+					}, null));
 				}
 			}
 		}
