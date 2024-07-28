@@ -8,9 +8,9 @@ public interface IEventLoop
 {
 	public static IEventLoop Get() => EventLoop.Get();
 
-	EventLoopRegistration Register(EEventLoopTickingGroup group, EventLoopCallback callback, object? state, object? lifecycle);
+	EventLoopRegistration Register(EEventLoopTickingGroup group, EventLoopCallback callback, object? state, Lifecycle lifecycle = default);
 	void Unregister(EventLoopRegistration registration);
-	void UnregisterAll(object lifecycle);
+	void UnregisterAll(Lifecycle lifecycle);
 }
 
 

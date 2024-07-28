@@ -2,8 +2,14 @@
 
 namespace ZeroGames.ZSharp.Async;
 
-public readonly struct LifecycleExpiredRegistration(Lifecycle lifecycle, uint64 handle) : IEquatable<LifecycleExpiredRegistration>
+public readonly struct LifecycleExpiredRegistration : IEquatable<LifecycleExpiredRegistration>
 {
+
+	public LifecycleExpiredRegistration(ReactiveLifecycle lifecycle, uint64 handle)
+	{
+		_lifecycle = lifecycle;
+		_handle = handle;
+	}
 
 	public bool Equals(LifecycleExpiredRegistration other) => _lifecycle == other._lifecycle && _handle == other._handle;
 	public override bool Equals(object? obj) => obj is LifecycleExpiredRegistration other && Equals(other);
@@ -13,9 +19,20 @@ public readonly struct LifecycleExpiredRegistration(Lifecycle lifecycle, uint64 
 
 	// No need to validate game thread because Lifecycle does.
 	public void Unregister() => _lifecycle.UnregisterOnExpired(this);
+	
+	public bool IsValid => _handle > 0 || _explicit.IsValid;
 
-	private readonly Lifecycle _lifecycle = lifecycle;
-	private readonly uint64 _handle = handle;
+	internal LifecycleExpiredRegistration(ReactiveLifecycle lifecycle, ExplicitLifecycleExpiredRegistration @explicit)
+	{
+		_lifecycle = lifecycle;
+		_explicit = @explicit;
+	}
+
+	internal ExplicitLifecycleExpiredRegistration Explicit => _explicit;
+	
+	private readonly ReactiveLifecycle _lifecycle;
+	private readonly uint64 _handle;
+	private readonly ExplicitLifecycleExpiredRegistration _explicit;
 
 }
 

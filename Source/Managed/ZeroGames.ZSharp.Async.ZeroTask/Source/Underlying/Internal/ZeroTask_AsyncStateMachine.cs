@@ -50,7 +50,7 @@ internal class ZeroTask_AsyncStateMachine<TResult> : IPoolableUnderlyingZeroTask
 
 	private static UnderlyingZeroTaskPool<TResult, ZeroTask_AsyncStateMachine<TResult>> _pool;
 
-	private PoolableUnderlyingZeroTaskComponent<TResult> _comp;
+	private UnderlyingZeroTaskComponent<TResult> _comp;
 
 }
 

@@ -5,24 +5,12 @@ namespace ZeroGames.ZSharp.Async;
 internal class EventLoop : IEventLoop
 {
 
-	public EventLoopRegistration Register(EEventLoopTickingGroup group, EventLoopCallback callback, object? state, object? lifecycle)
+	public EventLoopRegistration Register(EEventLoopTickingGroup group, EventLoopCallback callback, object? state, Lifecycle lifecycle = default)
 	{
 		ThreadHelper.ValidateGameThread();
-		if (ReferenceEquals(callback, lifecycle))
+		if (lifecycle.IsExpired)
 		{
-			throw new InvalidOperationException();
-		}
-		
-		if (lifecycle is not null)
-		{
-			if (lifecycle is IExplicitLifecycle { IsExpired: true })
-			{
-				throw new InvalidOperationException();
-			}
-			if (lifecycle is Lifecycle { IsExpired: true })
-			{
-				throw new InvalidOperationException();
-			}
+			return default;
 		}
 		
 		return InternalRegister(group, callback, state, lifecycle);
@@ -34,7 +22,7 @@ internal class EventLoop : IEventLoop
 		InternalUnregister(registration);
 	}
 
-	public void UnregisterAll(object lifecycle)
+	public void UnregisterAll(Lifecycle lifecycle)
 	{
 		ThreadHelper.ValidateGameThread();
 		InternalUnregisterAll(lifecycle);
@@ -134,12 +122,12 @@ internal class EventLoop : IEventLoop
 		}
 	}
 
-	private EventLoopRegistration InternalRegister(EEventLoopTickingGroup group, EventLoopCallback callback, object? state, object? lifecycle)
+	private EventLoopRegistration InternalRegister(EEventLoopTickingGroup group, EventLoopCallback callback, object? state, Lifecycle lifecycle)
 	{
 		return InternalRegisterTo(_isNotifing ? _deferredRegistry : _registry, group, callback, state, lifecycle);
 	}
 
-	private EventLoopRegistration InternalRegisterTo(Dictionary<EEventLoopTickingGroup, Dictionary<EventLoopRegistration, Rec>> registry, EEventLoopTickingGroup group, EventLoopCallback callback, object? state, object? lifecycle)
+	private EventLoopRegistration InternalRegisterTo(Dictionary<EEventLoopTickingGroup, Dictionary<EventLoopRegistration, Rec>> registry, EEventLoopTickingGroup group, EventLoopCallback callback, object? state, Lifecycle lifecycle)
 	{
 		if (!registry.TryGetValue(group, out var innerRegistry))
 		{
@@ -148,40 +136,21 @@ internal class EventLoop : IEventLoop
 		}
 
 		EventLoopRegistration reg = new(this, ++_handle);
-		
-		WeakReference? wr = null;
-		Lifecycle lc = default;
-		if (lifecycle is not null)
-		{
-			if (lifecycle is IExplicitLifecycle explicitLifecycle)
-			{
-				lc = Lifecycle.Explicit(explicitLifecycle);
-			}
-			else if (lifecycle is Lifecycle valueLifecycle)
-			{
-				lc = valueLifecycle;
-			}
-			else
-			{
-				wr = new(lifecycle);
-			}
-		}
-		
-		innerRegistry[reg] = new(callback, state, wr, lc);
+		innerRegistry[reg] = new(callback, state, lifecycle);
 
 		return reg;
 	}
 
-	private void InternalUnregisterAll(object lifecycle)
+	private void InternalUnregisterAll(Lifecycle lifecycle)
 	{
-		static void Traverse(Dictionary<EEventLoopTickingGroup, Dictionary<EventLoopRegistration, Rec>> registry, object lifecycle)
+		static void Traverse(Dictionary<EEventLoopTickingGroup, Dictionary<EventLoopRegistration, Rec>> registry, Lifecycle lifecycle)
 		{
 			foreach (var pair in registry)
 			{
 				var innerRegistry = pair.Value;
 				foreach (var innerPair in innerRegistry)
 				{
-					if (innerPair.Value.WeakLifecycle?.Target == lifecycle)
+					if (innerPair.Value.Lifecycle == lifecycle)
 					{
 						innerRegistry[innerPair.Key] = default;
 					}
@@ -234,15 +203,10 @@ internal class EventLoop : IEventLoop
 			return false;
 		}
 
-		if (rec.WeakLifecycle is not null && rec.WeakLifecycle.Target is not null)
-		{
-			return true;
-		}
-
 		return !rec.Lifecycle.IsExpired;
 	}
 	
-	private readonly record struct Rec(EventLoopCallback? Callback, object? State, WeakReference? WeakLifecycle, Lifecycle Lifecycle);
+	private readonly record struct Rec(EventLoopCallback? Callback, object? State, Lifecycle Lifecycle);
 	
 	private static EventLoop _singleton = new();
 	

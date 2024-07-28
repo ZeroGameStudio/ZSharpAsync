@@ -6,10 +6,10 @@ using System.Runtime.ExceptionServices;
 namespace ZeroGames.ZSharp.Async.ZeroTask;
 
 /// <summary>
-/// Encapsulates generic logic for a poolable underlying task.
+/// Encapsulates generic logic for underlying task.
 /// Similar to ManualResetValueTaskSourceCore.
 /// </summary>
-public struct PoolableUnderlyingZeroTaskComponent<TResult>
+public struct UnderlyingZeroTaskComponent<TResult>
 {
 
 	public void Initialize()

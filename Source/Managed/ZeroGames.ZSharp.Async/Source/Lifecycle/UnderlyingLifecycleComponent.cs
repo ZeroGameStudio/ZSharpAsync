@@ -1,8 +1,10 @@
 ﻿// Copyright Zero Games. All Rights Reserved.
 
+using System.Runtime.CompilerServices;
+
 namespace ZeroGames.ZSharp.Async;
 
-public class PoolableUnderlyingLifecycleComponent(IUnderlyingLifecycle lifecycle)
+public struct UnderlyingLifecycleComponent(IUnderlyingLifecycle lifecycle)
 {
 
 	public void Initialize()
@@ -17,11 +19,12 @@ public class PoolableUnderlyingLifecycleComponent(IUnderlyingLifecycle lifecycle
 		Token = Token.Next;
 	}
 	
-	public LifecycleExpiredRegistration RegisterOnExpired(Action<IUnderlyingLifecycle, object?> callback, object? state, UnderlyingLifecycleToken token)
+	public LifecycleExpiredRegistration RegisterOnExpired(Action<IReactiveUnderlyingLifecycle, object?> callback, object? state, UnderlyingLifecycleToken token)
 	{
 		ValidateToken(token);
+		ValidateReactive();
 		_registry ??= new();
-		LifecycleExpiredRegistration reg = new(new(_lifecycle), ++_handle);
+		LifecycleExpiredRegistration reg = new(new(Unsafe.As<IReactiveUnderlyingLifecycle>(_lifecycle)), ++_handle);
 		_registry[reg] = new(callback, state);
 
 		return reg;
@@ -30,6 +33,7 @@ public class PoolableUnderlyingLifecycleComponent(IUnderlyingLifecycle lifecycle
 	public void UnregisterOnExpired(LifecycleExpiredRegistration registration, UnderlyingLifecycleToken token)
 	{
 		ValidateToken(token);
+		ValidateReactive();
 		_registry?.Remove(registration);
 	}
 
@@ -49,10 +53,11 @@ public class PoolableUnderlyingLifecycleComponent(IUnderlyingLifecycle lifecycle
 		_isExpired = true;
 		if (_registry is not null)
 		{
+			var reactiveUnderlyingLifecycle = Unsafe.As<IReactiveUnderlyingLifecycle>(_lifecycle);
 			foreach (var pair in _registry)
 			{
 				Rec rec = pair.Value;
-				rec.Callback(_lifecycle, rec.State);
+				rec.Callback(reactiveUnderlyingLifecycle, rec.State);
 			}
 		}
 	}
@@ -66,8 +71,16 @@ public class PoolableUnderlyingLifecycleComponent(IUnderlyingLifecycle lifecycle
 			throw new InvalidOperationException();
 		}
 	}
+
+	private void ValidateReactive()
+	{
+		if (_lifecycle is not IReactiveUnderlyingLifecycle)
+		{
+			throw new InvalidOperationException();
+		}
+	}
 	
-	private readonly record struct Rec(Action<IUnderlyingLifecycle, object?> Callback, object? State);
+	private readonly record struct Rec(Action<IReactiveUnderlyingLifecycle, object?> Callback, object? State);
 
 	private IUnderlyingLifecycle _lifecycle = lifecycle;
 	private uint64 _handle;

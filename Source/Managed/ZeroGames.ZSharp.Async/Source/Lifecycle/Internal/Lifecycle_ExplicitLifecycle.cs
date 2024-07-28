@@ -4,7 +4,7 @@ using System.Runtime.CompilerServices;
 
 namespace ZeroGames.ZSharp.Async;
 
-internal class Lifecycle_ExplicitLifecycle : IPoolableUnderlyingLifecycle<Lifecycle_ExplicitLifecycle>
+internal class Lifecycle_ExplicitLifecycle : IPoolableReactiveUnderlyingLifecycle<Lifecycle_ExplicitLifecycle>
 {
 
 	public static Lifecycle_ExplicitLifecycle GetFromPool(IExplicitLifecycle explicitLifecycle)
@@ -54,7 +54,7 @@ internal class Lifecycle_ExplicitLifecycle : IPoolableUnderlyingLifecycle<Lifecy
 	
 	public void Deinitialize() => _comp.Deinitialize();
 
-	public LifecycleExpiredRegistration RegisterOnExpired(Action<IUnderlyingLifecycle, object?> callback, object? state, UnderlyingLifecycleToken token) => _comp.RegisterOnExpired(callback, state, token);
+	public LifecycleExpiredRegistration RegisterOnExpired(Action<IReactiveUnderlyingLifecycle, object?> callback, object? state, UnderlyingLifecycleToken token) => _comp.RegisterOnExpired(callback, state, token);
 
 	public void UnregisterOnExpired(LifecycleExpiredRegistration registration, UnderlyingLifecycleToken token) => _comp.UnregisterOnExpired(registration, token);
 
@@ -101,7 +101,7 @@ internal class Lifecycle_ExplicitLifecycle : IPoolableUnderlyingLifecycle<Lifecy
 	
 	private static UnderlyingLifecyclePool<Lifecycle_ExplicitLifecycle> _pool;
 	
-	private PoolableUnderlyingLifecycleComponent _comp;
+	private UnderlyingLifecycleComponent _comp;
 
 }
 

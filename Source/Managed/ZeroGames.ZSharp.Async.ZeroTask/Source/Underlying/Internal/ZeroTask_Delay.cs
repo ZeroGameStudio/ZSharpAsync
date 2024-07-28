@@ -71,7 +71,7 @@ internal class ZeroTask_Delay : IPoolableUnderlyingZeroTask<AsyncVoid, ZeroTask_
 					@this._reg.Unregister();
 				}
 			}
-		}, this, null);
+		}, this);
 	}
 
 	public UnderlyingZeroTaskToken Token => _comp.Token;
@@ -80,7 +80,7 @@ internal class ZeroTask_Delay : IPoolableUnderlyingZeroTask<AsyncVoid, ZeroTask_
 
 	private static UnderlyingZeroTaskPool<AsyncVoid, ZeroTask_Delay> _pool;
 
-	private PoolableUnderlyingZeroTaskComponent<AsyncVoid> _comp;
+	private UnderlyingZeroTaskComponent<AsyncVoid> _comp;
 
 	private Lifecycle _lifecycle;
 	
