@@ -7,7 +7,7 @@ namespace ZeroGames.ZSharp.Async;
 public readonly partial struct Lifecycle : IEquatable<Lifecycle>
 {
 
-	public bool Equals(Lifecycle other) => Equals(_underlyingLifecycle, other._underlyingLifecycle) && _capturedToken == other._capturedToken;
+	public bool Equals(Lifecycle other) => _underlyingLifecycle == other._underlyingLifecycle && _capturedToken == other._capturedToken;
 	public override bool Equals(object? obj) => obj is Lifecycle other && Equals(other);
 	public override int32 GetHashCode() => _underlyingLifecycle?.GetHashCode() ?? 0;
 	public static bool operator==(Lifecycle lhs, Lifecycle rhs) => lhs.Equals(rhs);

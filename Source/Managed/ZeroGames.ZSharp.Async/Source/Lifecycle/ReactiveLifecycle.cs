@@ -7,7 +7,7 @@ namespace ZeroGames.ZSharp.Async;
 public readonly partial struct ReactiveLifecycle : IEquatable<ReactiveLifecycle>
 {
 
-	public bool Equals(ReactiveLifecycle other) => Equals(_underlyingLifecycle, other._underlyingLifecycle) && _capturedToken == other._capturedToken;
+	public bool Equals(ReactiveLifecycle other) => _underlyingLifecycle == other._underlyingLifecycle && _capturedToken == other._capturedToken;
 	public override bool Equals(object? obj) => obj is ReactiveLifecycle other && Equals(other);
 	public override int32 GetHashCode() => _underlyingLifecycle?.GetHashCode() ?? 0;
 	public static bool operator==(ReactiveLifecycle lhs, ReactiveLifecycle rhs) => lhs.Equals(rhs);
@@ -99,6 +99,28 @@ public readonly partial struct ReactiveLifecycle : IEquatable<ReactiveLifecycle>
 			var reactiveUnderlyingLifecycle = Unsafe.As<IReactiveUnderlyingLifecycle>(_underlyingLifecycle);
 			reactiveUnderlyingLifecycle.UnregisterOnExpired(registration, _capturedToken);
 		}
+	}
+
+	public bool IsValidRegistration(LifecycleExpiredRegistration registration)
+	{
+		ThreadHelper.ValidateGameThread();
+
+		if (IsExpired)
+		{
+			return false;
+		}
+		
+		if (_underlyingLifecycle is IExplicitLifecycle explicitLifecycle)
+		{
+			return registration.Explicit.IsValid;
+		}
+		else if (_underlyingLifecycle is not null)
+		{
+			var reactiveUnderlyingLifecycle = Unsafe.As<IReactiveUnderlyingLifecycle>(_underlyingLifecycle);
+			return reactiveUnderlyingLifecycle.IsValidRegistration(registration);
+		}
+
+		return false;
 	}
 
 	public bool IsExpired
