@@ -19,6 +19,11 @@ internal class EventLoop : IEventLoop
 	public void Unregister(EventLoopRegistration registration)
 	{
 		ThreadHelper.ValidateGameThread();
+		if (registration == default || registration.Owner != this)
+		{
+			return;
+		}
+		
 		InternalUnregister(registration);
 	}
 
@@ -31,6 +36,11 @@ internal class EventLoop : IEventLoop
 	public bool IsValidRegistration(EventLoopRegistration registration)
 	{
 		ThreadHelper.ValidateGameThread();
+		if (registration == default || registration.Owner != this)
+		{
+			return false;
+		}
+		
 		return InternalIsValidRegistration(registration);
 	}
 
@@ -50,11 +60,6 @@ internal class EventLoop : IEventLoop
 				}
 			}
 
-			return false;
-		}
-		
-		if (registration == default)
-		{
 			return false;
 		}
 
@@ -154,11 +159,6 @@ internal class EventLoop : IEventLoop
 			}
 
 			return false;
-		}
-
-		if (registration == default)
-		{
-			return;
 		}
 
 		if (!_isNotifing || !Traverse(_deferredRegistry, registration))
