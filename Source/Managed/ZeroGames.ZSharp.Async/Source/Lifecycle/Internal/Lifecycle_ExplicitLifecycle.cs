@@ -4,6 +4,7 @@ using System.Runtime.CompilerServices;
 
 namespace ZeroGames.ZSharp.Async;
 
+[Obsolete]
 internal class Lifecycle_ExplicitLifecycle : IPoolableReactiveUnderlyingLifecycle<Lifecycle_ExplicitLifecycle>
 {
 
