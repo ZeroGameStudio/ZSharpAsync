@@ -13,12 +13,7 @@ public readonly struct EventLoopRegistration : IEquatable<EventLoopRegistration>
 
 	public void Unregister()
 	{
-		if (_owner is null)
-		{
-			throw new InvalidOperationException();
-		}
-		
-		_owner.InternalUnregister(this);
+		_owner?.InternalUnregister(this);
 	}
 	
 	public bool IsValid => _handle > 0;
