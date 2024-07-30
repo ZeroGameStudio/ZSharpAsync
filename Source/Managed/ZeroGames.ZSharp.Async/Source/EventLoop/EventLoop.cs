@@ -63,21 +63,21 @@ internal class EventLoop : IEventLoop
 			return false;
 		}
 
-		bool isValid = false;
-		if (_isNotifing && Traverse(_deferredRegistry, registration, ref isValid))
+		bool valid = false;
+		if (_notifing && Traverse(_deferredRegistry, registration, ref valid))
 		{
-			return isValid;
+			return valid;
 		}
 
-		Traverse(_registry, registration, ref isValid);
-		return isValid;
+		Traverse(_registry, registration, ref valid);
+		return valid;
 	}
 
 	internal static EventLoop Get() => _singleton;
 	
 	internal void NotifyEvent(EEventLoopTickingGroup group, float worldDeltaTime, float realDeltaTime, double worldElapsedTime, double realElapsedTime)
 	{
-		_isNotifing = true;
+		_notifing = true;
 			
 		try
 		{
@@ -140,7 +140,7 @@ internal class EventLoop : IEventLoop
 		}
 		finally
 		{
-			_isNotifing = false;
+			_notifing = false;
 		}
 	}
 	
@@ -161,7 +161,7 @@ internal class EventLoop : IEventLoop
 			return false;
 		}
 
-		if (!_isNotifing || !Traverse(_deferredRegistry, registration))
+		if (!_notifing || !Traverse(_deferredRegistry, registration))
 		{
 			Traverse(_registry, registration);
 		}
@@ -179,7 +179,7 @@ internal class EventLoop : IEventLoop
 	
 	private EventLoopRegistration InternalRegister(EEventLoopTickingGroup group, EventLoopCallback callback, object? state, Lifecycle lifecycle)
 	{
-		return InternalRegisterTo(_isNotifing ? _deferredRegistry : _registry, group, callback, state, lifecycle);
+		return InternalRegisterTo(_notifing ? _deferredRegistry : _registry, group, callback, state, lifecycle);
 	}
 
 	private EventLoopRegistration InternalRegisterTo(Dictionary<EEventLoopTickingGroup, Dictionary<EventLoopRegistration, Rec>> registry, EEventLoopTickingGroup group, EventLoopCallback callback, object? state, Lifecycle lifecycle)
@@ -214,7 +214,7 @@ internal class EventLoop : IEventLoop
 		}
 
 		
-		if (_isNotifing)
+		if (_notifing)
 		{
 			Traverse(_deferredRegistry, lifecycle);
 		}
@@ -261,7 +261,7 @@ internal class EventLoop : IEventLoop
 	private Dictionary<EEventLoopTickingGroup, Dictionary<EventLoopRegistration, Rec>> _registry = new();
 	private Dictionary<EEventLoopTickingGroup, Dictionary<EventLoopRegistration, Rec>> _deferredRegistry = new();
 
-	private bool _isNotifing;
+	private bool _notifing;
 
 	private uint64 _handle;
 	

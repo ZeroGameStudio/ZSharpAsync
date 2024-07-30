@@ -9,7 +9,7 @@ public struct UnderlyingLifecycleComponent(IUnderlyingLifecycle lifecycle)
 
 	public void Initialize()
 	{
-		_isExpired = false;
+		_expired = false;
 		_handle = 0;
 		_registry?.Clear();
 	}
@@ -40,17 +40,17 @@ public struct UnderlyingLifecycleComponent(IUnderlyingLifecycle lifecycle)
 	public bool IsExpired(UnderlyingLifecycleToken token)
 	{
 		ValidateToken(token);
-		return _isExpired;
+		return _expired;
 	}
 
 	public void SetExpired()
 	{
-		if (_isExpired)
+		if (_expired)
 		{
 			throw new InvalidOperationException();
 		}
 		
-		_isExpired = true;
+		_expired = true;
 		if (_registry is not null)
 		{
 			var reactiveUnderlyingLifecycle = Unsafe.As<IReactiveUnderlyingLifecycle>(_lifecycle);
@@ -85,7 +85,7 @@ public struct UnderlyingLifecycleComponent(IUnderlyingLifecycle lifecycle)
 	private IUnderlyingLifecycle _lifecycle = lifecycle;
 	private uint64 _handle;
 	
-	private bool _isExpired;
+	private bool _expired;
 	private Dictionary<LifecycleExpiredRegistration, Rec>? _registry;
 
 }

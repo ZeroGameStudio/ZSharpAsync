@@ -14,7 +14,7 @@ public struct UnderlyingZeroTaskComponent<TResult>
 
 	public void Initialize()
 	{
-		_isCompleted = false;
+		_completed = false;
 	}
 
 	public void Deinitialize()
@@ -32,7 +32,7 @@ public struct UnderlyingZeroTaskComponent<TResult>
 	{
 		ValidateToken(token);
 
-		if (!_isCompleted || (_continuation is null && _stateMachine is null))
+		if (!_completed || (_continuation is null && _stateMachine is null))
 		{
 			return EUnderlyingZeroTaskStatus.Pending;
 		}
@@ -49,7 +49,7 @@ public struct UnderlyingZeroTaskComponent<TResult>
 	{
 		ValidateToken(token);
 
-		if (!_isCompleted)
+		if (!_completed)
 		{
 			throw new InvalidOperationException();
 		}
@@ -104,12 +104,12 @@ public struct UnderlyingZeroTaskComponent<TResult>
 
 	private void SignalCompletion()
 	{
-		if (_isCompleted)
+		if (_completed)
 		{
 			throw new InvalidOperationException();
 		}
 
-		_isCompleted = true;
+		_completed = true;
 
 		if (_stateMachine is not null)
 		{
@@ -121,7 +121,7 @@ public struct UnderlyingZeroTaskComponent<TResult>
 		}
 	}
 
-	private bool _isCompleted;
+	private bool _completed;
 	private IAsyncStateMachine? _stateMachine;
 	private Action? _continuation;
 	private TResult _result;
