@@ -79,72 +79,67 @@ internal class EventLoop : IEventLoop
 	{
 		_notifing = true;
 			
-		try
+		if (group == EEventLoopTickingGroup.PreWorldTick)
 		{
-			if (group == EEventLoopTickingGroup.PreWorldTick)
-			{
-				_worldAccumulatedSeconds += worldDeltaSeconds;
-				_realAccumulatedSeconds += realDeltaSeconds;
-			}
+			_worldAccumulatedSeconds += worldDeltaSeconds;
+			_realAccumulatedSeconds += realDeltaSeconds;
+		}
 				
-			EventLoopArgs args = new()
-			{
-				TickingGroup = group,
-				WorldDeltaSeconds = worldDeltaSeconds,
-				RealDeltaSeconds = realDeltaSeconds,
-				WorldElapsedSeconds = worldElapsedSeconds,
-				RealElapsedSeconds = realElapsedSeconds,
-				WorldAccumulatedSeconds = _worldAccumulatedSeconds,
-				RealAccumulatedSeconds = _realAccumulatedSeconds,
-			};
+		EventLoopArgs args = new()
+		{
+			TickingGroup = group,
+			WorldDeltaSeconds = worldDeltaSeconds,
+			RealDeltaSeconds = realDeltaSeconds,
+			WorldElapsedSeconds = worldElapsedSeconds,
+			RealElapsedSeconds = realElapsedSeconds,
+			WorldAccumulatedSeconds = _worldAccumulatedSeconds,
+			RealAccumulatedSeconds = _realAccumulatedSeconds,
+		};
 				
-			if (_registry.TryGetValue(group, out var registry))
+		if (_registry.TryGetValue(group, out var registry))
+		{
+			EventLoopRegistration stale = default;
+			foreach (var pair in registry)
 			{
-				EventLoopRegistration stale = default;
-				foreach (var pair in registry)
+				Rec rec = pair.Value;
+				if (IsValidRec(rec))
 				{
-					Rec rec = pair.Value;
-					if (IsValidRec(rec))
+					try
 					{
-						try
+						if (!IsExpiredRec(rec))
 						{
-							if (!IsExpiredRec(rec))
-							{
-								rec.Callback!(args, rec.State);
-							}
-							else
-							{
-								registry[pair.Key] = default;
-								rec.OnExpired?.Invoke(new LifecycleExpiredException(rec.Lifecycle));
-							}
+							rec.Callback!(args, rec.State);
 						}
-						catch (Exception ex)
+						else
 						{
-							Logger.Error($"Unhandled Exception Detected in Event Loop.\n{ex}");
+							registry[pair.Key] = default;
+							rec.OnExpired?.Invoke(new LifecycleExpiredException(rec.Lifecycle));
 						}
 					}
+					catch (Exception ex)
+					{
+						Logger.Error($"Unhandled Exception Detected in Event Loop.\n{ex}");
+					}
+				}
 					
-					// Rec may have modified by callback/onExpired.
-					rec = pair.Value;
-					if (!IsValidRec(rec))
-					{
-						stale = pair.Key;
-					}
-				}
-
-				// Clear only one stale registration because we run very frequently.
-				if (stale != default)
+				// Rec may have modified by callback/onExpired.
+				rec = pair.Value;
+				if (!IsValidRec(rec))
 				{
-					registry.Remove(stale);
+					stale = pair.Key;
 				}
-
-				FlushPendingRegistry();
 			}
+
+			// Clear only one stale registration because we run very frequently.
+			if (stale != default)
+			{
+				registry.Remove(stale);
+			}
+
+			FlushPendingRegistry();
 		}
-		finally
-		{
-			_notifing = false;
-		}
+
+		_notifing = false;
 	}
 	
 	internal void InternalUnregister(EventLoopRegistration registration)
