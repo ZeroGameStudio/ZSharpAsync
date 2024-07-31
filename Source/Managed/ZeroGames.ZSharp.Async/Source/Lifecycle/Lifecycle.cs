@@ -7,7 +7,7 @@ namespace ZeroGames.ZSharp.Async;
 public readonly partial struct Lifecycle : IEquatable<Lifecycle>
 {
 
-	public bool Equals(Lifecycle other) => _underlyingLifecycle == other._underlyingLifecycle && _capturedToken == other._capturedToken;
+	public bool Equals(Lifecycle other) => _underlyingLifecycle == other._underlyingLifecycle && _tokenSnapshot == other._tokenSnapshot;
 	public override bool Equals(object? obj) => obj is Lifecycle other && Equals(other);
 	public override int32 GetHashCode() => _underlyingLifecycle?.GetHashCode() ?? 0;
 	public static bool operator==(Lifecycle lhs, Lifecycle rhs) => lhs.Equals(rhs);
@@ -21,7 +21,7 @@ public readonly partial struct Lifecycle : IEquatable<Lifecycle>
 
 			if (_underlyingLifecycle is null)
 			{
-				return _capturedToken == _inlineExpiredToken;
+				return _tokenSnapshot == _inlineExpiredToken;
 			}
 
 			if (_underlyingLifecycle is WeakReference wr)
@@ -29,10 +29,10 @@ public readonly partial struct Lifecycle : IEquatable<Lifecycle>
 				return !wr.IsAlive;
 			}
 
-			if (_capturedToken.IsValid)
+			if (_tokenSnapshot.IsValid)
 			{
 				var interfaceUnderlyingLifecycle = Unsafe.As<IUnderlyingLifecycle>(_underlyingLifecycle);
-				return _capturedToken != interfaceUnderlyingLifecycle.Token || interfaceUnderlyingLifecycle.IsExpired(_capturedToken);
+				return _tokenSnapshot != interfaceUnderlyingLifecycle.Token || interfaceUnderlyingLifecycle.IsExpired(_tokenSnapshot);
 			}
 			else
 			{
@@ -44,7 +44,7 @@ public readonly partial struct Lifecycle : IEquatable<Lifecycle>
 	internal Lifecycle(IUnderlyingLifecycle underlyingLifecycle)
 	{
 		_underlyingLifecycle = underlyingLifecycle;
-		_capturedToken = underlyingLifecycle.Token;
+		_tokenSnapshot = underlyingLifecycle.Token;
 	}
 
 	internal Lifecycle(IExplicitLifecycle underlyingLifecycle)
@@ -53,7 +53,7 @@ public readonly partial struct Lifecycle : IEquatable<Lifecycle>
 		{
 			if (underlyingLifecycle.IsExpired)
 			{
-				_capturedToken = _inlineExpiredToken;
+				_tokenSnapshot = _inlineExpiredToken;
 			}
 			else
 			{
@@ -67,7 +67,7 @@ public readonly partial struct Lifecycle : IEquatable<Lifecycle>
 		if (underlyingLifecycle is IUnderlyingLifecycle interfaceUnderlyingLifecycle)
 		{
 			_underlyingLifecycle = interfaceUnderlyingLifecycle;
-			_capturedToken = interfaceUnderlyingLifecycle.Token;
+			_tokenSnapshot = interfaceUnderlyingLifecycle.Token;
 		}
 		else if (underlyingLifecycle is IExplicitLifecycle explicitLifecycle)
 		{
@@ -75,7 +75,7 @@ public readonly partial struct Lifecycle : IEquatable<Lifecycle>
 			{
 				if (explicitLifecycle.IsExpired)
 				{
-					_capturedToken = _inlineExpiredToken;
+					_tokenSnapshot = _inlineExpiredToken;
 				}
 				else
 				{
@@ -91,13 +91,13 @@ public readonly partial struct Lifecycle : IEquatable<Lifecycle>
 
 	private Lifecycle(UnderlyingLifecycleToken inlineExpiredToken)
 	{
-		_capturedToken = _inlineExpiredToken;
+		_tokenSnapshot = _inlineExpiredToken;
 	}
 
 	private static UnderlyingLifecycleToken _inlineExpiredToken = new(0xDEAD);
 	
 	private readonly object? _underlyingLifecycle;
-	private readonly UnderlyingLifecycleToken _capturedToken;
+	private readonly UnderlyingLifecycleToken _tokenSnapshot;
 	
 }
 

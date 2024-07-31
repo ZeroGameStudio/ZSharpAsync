@@ -44,7 +44,7 @@ public readonly partial struct ZeroTask : IZeroTask, IAwaitable<ZeroTask.Awaiter
 
 	public Awaiter GetAwaiter() => new(this);
 
-	public bool Equals(ZeroTask other) => _underlyingTask == other._underlyingTask && _capturedToken == other._capturedToken;
+	public bool Equals(ZeroTask other) => _underlyingTask == other._underlyingTask && _tokenSnapshot == other._tokenSnapshot;
 	public override bool Equals(object? obj) => obj is ZeroTask other && Equals(other);
 	public override int32 GetHashCode() => _underlyingTask?.GetHashCode() ?? 0;
 	public static bool operator ==(ZeroTask lhs, ZeroTask rhs) => lhs.Equals(rhs);
@@ -53,16 +53,16 @@ public readonly partial struct ZeroTask : IZeroTask, IAwaitable<ZeroTask.Awaiter
 	internal ZeroTask(IUnderlyingZeroTask underlyingTask)
 	{
 		_underlyingTask = underlyingTask;
-		_capturedToken = underlyingTask.Token;
+		_tokenSnapshot = underlyingTask.Token;
 	}
 
-	private bool IsCompleted => _underlyingTask is null || _underlyingTask.GetStatus(_capturedToken) != EUnderlyingZeroTaskStatus.Pending;
+	private bool IsCompleted => _underlyingTask is null || _underlyingTask.GetStatus(_tokenSnapshot) != EUnderlyingZeroTaskStatus.Pending;
 
 	private void GetResult()
 	{
 		if (_underlyingTask is not null)
 		{
-			_underlyingTask.GetResult(_capturedToken);
+			_underlyingTask.GetResult(_tokenSnapshot);
 		}
 	}
 	
@@ -74,7 +74,7 @@ public readonly partial struct ZeroTask : IZeroTask, IAwaitable<ZeroTask.Awaiter
 		}
 		else
 		{
-			_underlyingTask.SetStateMachine(stateMachine, _capturedToken);
+			_underlyingTask.SetStateMachine(stateMachine, _tokenSnapshot);
 		}
 	}
 
@@ -86,12 +86,12 @@ public readonly partial struct ZeroTask : IZeroTask, IAwaitable<ZeroTask.Awaiter
 		}
 		else
 		{
-			_underlyingTask.SetContinuation(continuation, _capturedToken);
+			_underlyingTask.SetContinuation(continuation, _tokenSnapshot);
 		}
 	}
 	
 	private readonly IUnderlyingZeroTask? _underlyingTask;
-	private readonly UnderlyingZeroTaskToken _capturedToken;
+	private readonly UnderlyingZeroTaskToken _tokenSnapshot;
 
 }
 
@@ -135,7 +135,7 @@ public readonly partial struct ZeroTask<TResult> : IZeroTask<TResult>, IAwaitabl
 
 	public Awaiter GetAwaiter() => new(this);
 
-	public bool Equals(ZeroTask<TResult> other) => _underlyingTask == other._underlyingTask && _capturedToken == other._capturedToken;
+	public bool Equals(ZeroTask<TResult> other) => _underlyingTask == other._underlyingTask && _tokenSnapshot == other._tokenSnapshot;
 	public override bool Equals(object? obj) => obj is ZeroTask<TResult> other && Equals(other);
 	public override int32 GetHashCode() => _underlyingTask?.GetHashCode() ?? 0;
 	public static bool operator ==(ZeroTask<TResult> lhs, ZeroTask<TResult> rhs) => lhs.Equals(rhs);
@@ -159,16 +159,16 @@ public readonly partial struct ZeroTask<TResult> : IZeroTask<TResult>, IAwaitabl
 	internal ZeroTask(IUnderlyingZeroTask<TResult> underlyingTask)
 	{
 		_underlyingTask = underlyingTask;
-		_capturedToken = underlyingTask.Token;
+		_tokenSnapshot = underlyingTask.Token;
 	}
 
-	private bool IsCompleted => _underlyingTask is null || _underlyingTask.GetStatus(_capturedToken) != EUnderlyingZeroTaskStatus.Pending;
+	private bool IsCompleted => _underlyingTask is null || _underlyingTask.GetStatus(_tokenSnapshot) != EUnderlyingZeroTaskStatus.Pending;
 
 	private TResult GetResult()
 	{
 		if (_underlyingTask is not null)
 		{
-			return _underlyingTask.GetResult(_capturedToken);
+			return _underlyingTask.GetResult(_tokenSnapshot);
 		}
 
 		return _inlineResult!;
@@ -182,7 +182,7 @@ public readonly partial struct ZeroTask<TResult> : IZeroTask<TResult>, IAwaitabl
 		}
 		else
 		{
-			_underlyingTask.SetStateMachine(stateMachine, _capturedToken);
+			_underlyingTask.SetStateMachine(stateMachine, _tokenSnapshot);
 		}
 	}
 
@@ -194,13 +194,13 @@ public readonly partial struct ZeroTask<TResult> : IZeroTask<TResult>, IAwaitabl
 		}
 		else
 		{
-			_underlyingTask.SetContinuation(continuation, _capturedToken);
+			_underlyingTask.SetContinuation(continuation, _tokenSnapshot);
 		}
 	}
 
 	private readonly TResult? _inlineResult;
 	private readonly IUnderlyingZeroTask<TResult>? _underlyingTask;
-	private readonly UnderlyingZeroTaskToken _capturedToken;
+	private readonly UnderlyingZeroTaskToken _tokenSnapshot;
 	
 }
 

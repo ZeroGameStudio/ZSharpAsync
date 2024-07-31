@@ -7,7 +7,7 @@ namespace ZeroGames.ZSharp.Async;
 public readonly partial struct ReactiveLifecycle : IEquatable<ReactiveLifecycle>
 {
 
-	public bool Equals(ReactiveLifecycle other) => _underlyingLifecycle == other._underlyingLifecycle && _capturedToken == other._capturedToken;
+	public bool Equals(ReactiveLifecycle other) => _underlyingLifecycle == other._underlyingLifecycle && _tokenSnapshot == other._tokenSnapshot;
 	public override bool Equals(object? obj) => obj is ReactiveLifecycle other && Equals(other);
 	public override int32 GetHashCode() => _underlyingLifecycle?.GetHashCode() ?? 0;
 	public static bool operator==(ReactiveLifecycle lhs, ReactiveLifecycle rhs) => lhs.Equals(rhs);
@@ -65,7 +65,7 @@ public readonly partial struct ReactiveLifecycle : IEquatable<ReactiveLifecycle>
 		else if (_underlyingLifecycle is not null)
 		{
 			var reactiveUnderlyingLifecycle = Unsafe.As<IReactiveUnderlyingLifecycle>(_underlyingLifecycle);
-			return reactiveUnderlyingLifecycle.RegisterOnExpired(callback, state, _capturedToken);
+			return reactiveUnderlyingLifecycle.RegisterOnExpired(callback, state, _tokenSnapshot);
 		}
 
 		return default;
@@ -97,7 +97,7 @@ public readonly partial struct ReactiveLifecycle : IEquatable<ReactiveLifecycle>
 		else if (_underlyingLifecycle is not null)
 		{
 			var reactiveUnderlyingLifecycle = Unsafe.As<IReactiveUnderlyingLifecycle>(_underlyingLifecycle);
-			reactiveUnderlyingLifecycle.UnregisterOnExpired(registration, _capturedToken);
+			reactiveUnderlyingLifecycle.UnregisterOnExpired(registration, _tokenSnapshot);
 		}
 	}
 
@@ -131,13 +131,13 @@ public readonly partial struct ReactiveLifecycle : IEquatable<ReactiveLifecycle>
 
 			if (_underlyingLifecycle is null)
 			{
-				return _capturedToken == _inlineExpiredToken;
+				return _tokenSnapshot == _inlineExpiredToken;
 			}
 
-			if (_capturedToken.IsValid)
+			if (_tokenSnapshot.IsValid)
 			{
 				var interfaceUnderlyingLifecycle = Unsafe.As<IUnderlyingLifecycle>(_underlyingLifecycle);
-				return _capturedToken != interfaceUnderlyingLifecycle.Token || interfaceUnderlyingLifecycle.IsExpired(_capturedToken);
+				return _tokenSnapshot != interfaceUnderlyingLifecycle.Token || interfaceUnderlyingLifecycle.IsExpired(_tokenSnapshot);
 			}
 			else
 			{
@@ -149,7 +149,7 @@ public readonly partial struct ReactiveLifecycle : IEquatable<ReactiveLifecycle>
 	internal ReactiveLifecycle(IReactiveUnderlyingLifecycle underlyingLifecycle)
 	{
 		_underlyingLifecycle = underlyingLifecycle;
-		_capturedToken = underlyingLifecycle.Token;
+		_tokenSnapshot = underlyingLifecycle.Token;
 	}
 
 	internal ReactiveLifecycle(IExplicitLifecycle underlyingLifecycle)
@@ -158,7 +158,7 @@ public readonly partial struct ReactiveLifecycle : IEquatable<ReactiveLifecycle>
 		{
 			if (underlyingLifecycle.IsExpired)
 			{
-				_capturedToken = _inlineExpiredToken;
+				_tokenSnapshot = _inlineExpiredToken;
 			}
 			else
 			{
@@ -169,13 +169,13 @@ public readonly partial struct ReactiveLifecycle : IEquatable<ReactiveLifecycle>
 	
 	private ReactiveLifecycle(in UnderlyingLifecycleToken inlineExpiredToken)
 	{
-		_capturedToken = _inlineExpiredToken;
+		_tokenSnapshot = _inlineExpiredToken;
 	}
 
 	private static UnderlyingLifecycleToken _inlineExpiredToken = new(0xDEAD);
 	
 	private readonly object? _underlyingLifecycle;
-	private readonly UnderlyingLifecycleToken _capturedToken;
+	private readonly UnderlyingLifecycleToken _tokenSnapshot;
 	
 }
 
