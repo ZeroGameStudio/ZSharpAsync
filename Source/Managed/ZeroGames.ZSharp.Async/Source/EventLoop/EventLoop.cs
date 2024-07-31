@@ -5,7 +5,7 @@ namespace ZeroGames.ZSharp.Async;
 internal class EventLoop : IEventLoop
 {
 
-	public EventLoopRegistration Register(EEventLoopTickingGroup group, EventLoopCallback callback, object? state, Lifecycle lifecycle = default)
+	public EventLoopRegistration Register(EEventLoopTickingGroup group, EventLoopCallback callback, object? state, Lifecycle lifecycle = default, Action<LifecycleExpiredException>? onExpired = null)
 	{
 		ThreadHelper.ValidateGameThread();
 		if (lifecycle.IsExpired)
@@ -13,7 +13,7 @@ internal class EventLoop : IEventLoop
 			return default;
 		}
 		
-		return InternalRegister(group, callback, state, lifecycle);
+		return InternalRegister(group, callback, state, lifecycle, onExpired);
 	}
 
 	public void Unregister(EventLoopRegistration registration)
@@ -100,7 +100,6 @@ internal class EventLoop : IEventLoop
 				
 			if (_registry.TryGetValue(group, out var registry))
 			{
-				bool mayHaveSideEffects = false;
 				EventLoopRegistration stale = default;
 				foreach (var pair in registry)
 				{
@@ -109,33 +108,37 @@ internal class EventLoop : IEventLoop
 					{
 						try
 						{
-							rec.Callback!(args, rec.State);
+							if (!IsExpiredRec(rec))
+							{
+								rec.Callback!(args, rec.State);
+							}
+							else
+							{
+								registry[pair.Key] = default;
+								rec.OnExpired?.Invoke(new LifecycleExpiredException(rec.Lifecycle));
+							}
 						}
 						catch (Exception ex)
 						{
 							Logger.Error($"Unhandled Exception Detected in Event Loop.\n{ex}");
 						}
-						finally
-						{
-							mayHaveSideEffects = true;
-						}
 					}
-					else
+					
+					// Rec may have modified by callback/onExpired.
+					rec = pair.Value;
+					if (!IsValidRec(rec))
 					{
 						stale = pair.Key;
 					}
 				}
 
 				// Clear only one stale registration because we run very frequently.
-				if (stale.IsValid)
+				if (stale != default)
 				{
 					registry.Remove(stale);
 				}
 
-				if (mayHaveSideEffects)
-				{
-					FlushDeferredRegistry();
-				}
+				FlushDeferredRegistry();
 			}
 		}
 		finally
@@ -167,22 +170,15 @@ internal class EventLoop : IEventLoop
 		}
 	}
 
-	private static bool IsValidRec(in Rec rec)
-	{
-		if (rec.Callback is null)
-		{
-			return false;
-		}
-
-		return !rec.Lifecycle.IsExpired;
-	}
+	private static bool IsValidRec(in Rec rec) => rec.Callback is not null;
+	private static bool IsExpiredRec(in Rec rec) => rec.Lifecycle.IsExpired;
 	
-	private EventLoopRegistration InternalRegister(EEventLoopTickingGroup group, EventLoopCallback callback, object? state, Lifecycle lifecycle)
+	private EventLoopRegistration InternalRegister(EEventLoopTickingGroup group, EventLoopCallback callback, object? state, Lifecycle lifecycle, Action<LifecycleExpiredException>? onExpired)
 	{
-		return InternalRegisterTo(_notifing ? _deferredRegistry : _registry, group, callback, state, lifecycle);
+		return InternalRegisterTo(_notifing ? _deferredRegistry : _registry, group, callback, state, lifecycle, onExpired);
 	}
 
-	private EventLoopRegistration InternalRegisterTo(Dictionary<EEventLoopTickingGroup, Dictionary<EventLoopRegistration, Rec>> registry, EEventLoopTickingGroup group, EventLoopCallback callback, object? state, Lifecycle lifecycle)
+	private EventLoopRegistration InternalRegisterTo(Dictionary<EEventLoopTickingGroup, Dictionary<EventLoopRegistration, Rec>> registry, EEventLoopTickingGroup group, EventLoopCallback callback, object? state, Lifecycle lifecycle, Action<LifecycleExpiredException>? onExpired)
 	{
 		if (!registry.TryGetValue(group, out var innerRegistry))
 		{
@@ -191,7 +187,7 @@ internal class EventLoop : IEventLoop
 		}
 
 		EventLoopRegistration reg = new(this, ++_handle);
-		innerRegistry[reg] = new(callback, state, lifecycle);
+		innerRegistry[reg] = new(callback, state, lifecycle, onExpired);
 
 		return reg;
 	}
@@ -251,7 +247,7 @@ internal class EventLoop : IEventLoop
 		innerRegistry[registration] = rec;
 	}
 	
-	private readonly record struct Rec(EventLoopCallback? Callback, object? State, Lifecycle Lifecycle);
+	private readonly record struct Rec(EventLoopCallback? Callback, object? State, Lifecycle Lifecycle, Action<LifecycleExpiredException>? OnExpired);
 	
 	private static EventLoop _singleton = new();
 	
