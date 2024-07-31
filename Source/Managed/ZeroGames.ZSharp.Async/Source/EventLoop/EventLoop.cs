@@ -64,7 +64,7 @@ internal class EventLoop : IEventLoop
 		}
 
 		bool valid = false;
-		if (_notifing && Traverse(_deferredRegistry, registration, ref valid))
+		if (_notifing && Traverse(_pendingRegistry, registration, ref valid))
 		{
 			return valid;
 		}
@@ -138,7 +138,7 @@ internal class EventLoop : IEventLoop
 					registry.Remove(stale);
 				}
 
-				FlushDeferredRegistry();
+				FlushPendingRegistry();
 			}
 		}
 		finally
@@ -164,7 +164,7 @@ internal class EventLoop : IEventLoop
 			return false;
 		}
 
-		if (!_notifing || !Traverse(_deferredRegistry, registration))
+		if (!_notifing || !Traverse(_pendingRegistry, registration))
 		{
 			Traverse(_registry, registration);
 		}
@@ -175,7 +175,7 @@ internal class EventLoop : IEventLoop
 	
 	private EventLoopRegistration InternalRegister(EEventLoopTickingGroup group, EventLoopCallback callback, object? state, Lifecycle lifecycle, Action<LifecycleExpiredException>? onExpired)
 	{
-		return InternalRegisterTo(_notifing ? _deferredRegistry : _registry, group, callback, state, lifecycle, onExpired);
+		return InternalRegisterTo(_notifing ? _pendingRegistry : _registry, group, callback, state, lifecycle, onExpired);
 	}
 
 	private EventLoopRegistration InternalRegisterTo(Dictionary<EEventLoopTickingGroup, Dictionary<EventLoopRegistration, Rec>> registry, EEventLoopTickingGroup group, EventLoopCallback callback, object? state, Lifecycle lifecycle, Action<LifecycleExpiredException>? onExpired)
@@ -212,15 +212,15 @@ internal class EventLoop : IEventLoop
 		
 		if (_notifing)
 		{
-			Traverse(_deferredRegistry, lifecycle);
+			Traverse(_pendingRegistry, lifecycle);
 		}
 
 		Traverse(_registry, lifecycle);
 	}
 
-	private void FlushDeferredRegistry()
+	private void FlushPendingRegistry()
 	{
-		foreach (var pair in _deferredRegistry)
+		foreach (var pair in _pendingRegistry)
 		{
 			var innerRegistry = pair.Value;
 			foreach (var innerPair in innerRegistry)
@@ -229,14 +229,14 @@ internal class EventLoop : IEventLoop
 				if (IsValidRec(rec))
 				{
 					// This method is only used by NotifyEvent which already acquires lock, so here we don't lock again.
-					RegisterDeferred(pair.Key, innerPair.Key, rec);
+					RegisterPending(pair.Key, innerPair.Key, rec);
 				}
 			}
 			innerRegistry.Clear();
 		}
 	}
 	
-	private void RegisterDeferred(EEventLoopTickingGroup group, EventLoopRegistration registration, in Rec rec)
+	private void RegisterPending(EEventLoopTickingGroup group, EventLoopRegistration registration, in Rec rec)
 	{
 		if (!_registry.TryGetValue(group, out var innerRegistry))
 		{
@@ -255,7 +255,7 @@ internal class EventLoop : IEventLoop
 	private double _realAccumulatedSeconds;
 	
 	private Dictionary<EEventLoopTickingGroup, Dictionary<EventLoopRegistration, Rec>> _registry = new();
-	private Dictionary<EEventLoopTickingGroup, Dictionary<EventLoopRegistration, Rec>> _deferredRegistry = new();
+	private Dictionary<EEventLoopTickingGroup, Dictionary<EventLoopRegistration, Rec>> _pendingRegistry = new();
 
 	private bool _notifing;
 
