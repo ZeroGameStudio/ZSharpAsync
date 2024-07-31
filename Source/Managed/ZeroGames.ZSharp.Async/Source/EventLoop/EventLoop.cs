@@ -92,8 +92,8 @@ internal class EventLoop : IEventLoop
 			RealDeltaSeconds = realDeltaSeconds,
 			WorldElapsedSeconds = worldElapsedSeconds,
 			RealElapsedSeconds = realElapsedSeconds,
-			WorldAccumulatedSeconds = _worldAccumulatedSeconds,
-			RealAccumulatedSeconds = _realAccumulatedSeconds,
+			WorldAccumulatedSeconds = _worldAccumulatedSeconds.Seconds,
+			RealAccumulatedSeconds = _realAccumulatedSeconds.Seconds,
 		};
 				
 		if (_registry.TryGetValue(group, out var registry))
@@ -246,8 +246,8 @@ internal class EventLoop : IEventLoop
 	
 	private static EventLoop _singleton = new();
 	
-	private double _worldAccumulatedSeconds;
-	private double _realAccumulatedSeconds;
+	private AccumulatedSeconds _worldAccumulatedSeconds;
+	private AccumulatedSeconds _realAccumulatedSeconds;
 	
 	private Dictionary<EEventLoopTickingGroup, Dictionary<EventLoopRegistration, Rec>> _registry = new();
 	private Dictionary<EEventLoopTickingGroup, Dictionary<EventLoopRegistration, Rec>> _pendingRegistry = new();
