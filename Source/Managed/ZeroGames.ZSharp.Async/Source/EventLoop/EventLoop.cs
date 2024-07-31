@@ -113,7 +113,7 @@ internal class EventLoop : IEventLoop
 						else
 						{
 							registry[pair.Key] = default;
-							rec.OnExpired?.Invoke(new LifecycleExpiredException(rec.Lifecycle));
+							rec.OnExpired?.Invoke(new(rec.Lifecycle));
 						}
 					}
 					catch (Exception ex)

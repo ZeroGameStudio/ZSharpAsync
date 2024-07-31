@@ -55,7 +55,7 @@ internal class ZeroTask_Delay : IPoolableUnderlyingZeroTask<AsyncVoid, ZeroTask_
 			{
 				@this._comp.SetResult(default);
 			}
-		}, this, _delayTime, _lifecycle);
+		}, this, _delayTime);
 	}
 
 	public UnderlyingZeroTaskToken Token => _comp.Token;

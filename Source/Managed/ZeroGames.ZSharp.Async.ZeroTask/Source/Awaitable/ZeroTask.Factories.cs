@@ -14,16 +14,17 @@ public partial struct ZeroTask
 	
 	public static ZeroTask FromException(Exception exception) => throw new NotImplementedException();
 
-	public static ZeroTask Delay(double delayTimeMs, Lifecycle lifecycle = default)
+	public static ZeroTask Delay(double delayTimeMs, Lifecycle lifecycle = default) => Delay(TimeSpan.FromMilliseconds(delayTimeMs), lifecycle);
+	public static ZeroTask Delay(TimeSpan delayTime, Lifecycle lifecycle = default)
 	{
 		ThreadHelper.ValidateGameThread();
 		
-		if (delayTimeMs <= 0.0)
+		if (delayTime <= TimeSpan.Zero)
 		{
 			return CompletedTask;
 		}
 		
-		ZeroTask_Delay delay = ZeroTask_Delay.GetFromPool(delayTimeMs, lifecycle);
+		ZeroTask_Delay delay = ZeroTask_Delay.GetFromPool(delayTime, lifecycle);
 		ZeroTask task = FromUnderlyingTask(delay);
 		delay.Run();
 		return task;
