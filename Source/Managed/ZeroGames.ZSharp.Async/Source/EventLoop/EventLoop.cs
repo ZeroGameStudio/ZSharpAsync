@@ -75,7 +75,7 @@ internal class EventLoop : IEventLoop
 
 	internal static EventLoop Get() => _singleton;
 	
-	internal void NotifyEvent(EEventLoopTickingGroup group, float worldDeltaTime, float realDeltaTime, double worldElapsedTime, double realElapsedTime)
+	internal void NotifyEvent(EEventLoopTickingGroup group, TimeSpan worldDeltaTime, TimeSpan realDeltaTime, TimeSpan worldElapsedTime, TimeSpan realElapsedTime)
 	{
 		_notifing = true;
 			
@@ -255,8 +255,8 @@ internal class EventLoop : IEventLoop
 	
 	private static EventLoop _singleton = new();
 	
-	private double _worldAccumulatedTime;
-	private double _realAccumulatedTime;
+	private TimeSpan _worldAccumulatedTime;
+	private TimeSpan _realAccumulatedTime;
 	
 	private Dictionary<EEventLoopTickingGroup, Dictionary<EventLoopRegistration, Rec>> _registry = new();
 	private Dictionary<EEventLoopTickingGroup, Dictionary<EventLoopRegistration, Rec>> _deferredRegistry = new();

@@ -11,7 +11,7 @@ internal class ZeroTask_Delay : IPoolableUnderlyingZeroTask<AsyncVoid, ZeroTask_
 	{
 		ZeroTask_Delay task = _pool.Pop();
 		task._lifecycle = lifecycle;
-		task._delaySeconds = delayTimeMs * 0.001;
+		task._delayTime = TimeSpan.FromMilliseconds(delayTimeMs);
 		
 		return task;
 	}
@@ -59,8 +59,8 @@ internal class ZeroTask_Delay : IPoolableUnderlyingZeroTask<AsyncVoid, ZeroTask_
 				}
 			}
 			
-			@this._elapsedSeconds += args.WorldDeltaTime;
-			if (@this._elapsedSeconds >= @this._delaySeconds)
+			@this._elapsedTime += args.WorldDeltaTime;
+			if (@this._elapsedTime >= @this._delayTime)
 			{
 				try
 				{
@@ -84,8 +84,8 @@ internal class ZeroTask_Delay : IPoolableUnderlyingZeroTask<AsyncVoid, ZeroTask_
 
 	private Lifecycle _lifecycle;
 	
-	private double _elapsedSeconds;
-	private double _delaySeconds;
+	private TimeSpan _elapsedTime;
+	private TimeSpan _delayTime;
 	private EventLoopRegistration _reg;
 
 }

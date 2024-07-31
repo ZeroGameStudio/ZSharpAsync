@@ -5,12 +5,12 @@ namespace ZeroGames.ZSharp.Async;
 public readonly struct EventLoopArgs
 {
 	public required EEventLoopTickingGroup TickingGroup { get; init; }
-	public required float WorldDeltaTime { get; init; }
-	public required float RealDeltaTime { get; init; }
-	public required double WorldElapsedTime { get; init; }
-	public required double RealElapsedTime { get; init; }
-	public required double WorldAccumulatedTime { get; init; }
-	public required double RealAccumulatedTime { get; init; }
+	public required TimeSpan WorldDeltaTime { get; init; }
+	public required TimeSpan RealDeltaTime { get; init; }
+	public required TimeSpan WorldElapsedTime { get; init; }
+	public required TimeSpan RealElapsedTime { get; init; }
+	public required TimeSpan WorldAccumulatedTime { get; init; }
+	public required TimeSpan RealAccumulatedTime { get; init; }
 }
 
 
