@@ -7,11 +7,11 @@ namespace ZeroGames.ZSharp.Async.ZeroTask;
 internal class ZeroTask_Delay : IPoolableUnderlyingZeroTask<AsyncVoid, ZeroTask_Delay>
 {
 
-	public static ZeroTask_Delay GetFromPool(double delayTimeMs, Lifecycle lifecycle)
+	public static ZeroTask_Delay GetFromPool(TimeSpan delayTime, Lifecycle lifecycle)
 	{
 		ZeroTask_Delay task = _pool.Pop();
 		task._lifecycle = lifecycle;
-		task._delayTime = TimeSpan.FromMilliseconds(delayTimeMs);
+		task._delayTime = delayTime;
 		
 		return task;
 	}
@@ -44,34 +44,18 @@ internal class ZeroTask_Delay : IPoolableUnderlyingZeroTask<AsyncVoid, ZeroTask_
 
 	public void Run()
 	{
-		_reg = IEventLoop.Get().Register(EEventLoopTickingGroup.DuringWorldTimerTick, static (in EventLoopArgs args, object? state) =>
+		GlobalTimerScheduler.WorldPausedReliable.Register(static (_, state) =>
 		{
 			ZeroTask_Delay @this = Unsafe.As<ZeroTask_Delay>(state!);
 			if (@this._lifecycle.IsExpired)
 			{
-				try
-				{
-					@this._comp.SetException(new LifecycleExpiredException(@this._lifecycle));
-				}
-				finally
-				{
-					@this._reg.Unregister();
-				}
+				@this._comp.SetException(new LifecycleExpiredException(@this._lifecycle));
 			}
-			
-			@this._elapsedTime += args.WorldDeltaTime;
-			if (@this._elapsedTime >= @this._delayTime)
+			else
 			{
-				try
-				{
-					@this._comp.SetResult(default);
-				}
-				finally
-				{
-					@this._reg.Unregister();
-				}
+				@this._comp.SetResult(default);
 			}
-		}, this);
+		}, this, _delayTime, _lifecycle);
 	}
 
 	public UnderlyingZeroTaskToken Token => _comp.Token;
@@ -84,8 +68,6 @@ internal class ZeroTask_Delay : IPoolableUnderlyingZeroTask<AsyncVoid, ZeroTask_
 
 	private Lifecycle _lifecycle;
 	
-	private TimeSpan _elapsedTime;
 	private TimeSpan _delayTime;
-	private EventLoopRegistration _reg;
 
 }

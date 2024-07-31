@@ -75,7 +75,7 @@ internal class EventLoop : IEventLoop
 
 	internal static EventLoop Get() => _singleton;
 	
-	internal void NotifyEvent(EEventLoopTickingGroup group, TimeSpan worldDeltaTime, TimeSpan realDeltaTime, TimeSpan worldElapsedTime, TimeSpan realElapsedTime)
+	internal void NotifyEvent(EEventLoopTickingGroup group, float worldDeltaSeconds, float realDeltaSeconds, double worldElapsedSeconds, double realElapsedSeconds)
 	{
 		_notifing = true;
 			
@@ -83,19 +83,19 @@ internal class EventLoop : IEventLoop
 		{
 			if (group == EEventLoopTickingGroup.PreWorldTick)
 			{
-				_worldAccumulatedTime += worldDeltaTime;
-				_realAccumulatedTime += realDeltaTime;
+				_worldAccumulatedSeconds += worldDeltaSeconds;
+				_realAccumulatedSeconds += realDeltaSeconds;
 			}
 				
 			EventLoopArgs args = new()
 			{
 				TickingGroup = group,
-				WorldDeltaTime = worldDeltaTime,
-				RealDeltaTime = realDeltaTime,
-				WorldElapsedTime = worldElapsedTime,
-				RealElapsedTime = realElapsedTime,
-				WorldAccumulatedTime = _worldAccumulatedTime,
-				RealAccumulatedTime = _realAccumulatedTime,
+				WorldDeltaSeconds = worldDeltaSeconds,
+				RealDeltaSeconds = realDeltaSeconds,
+				WorldElapsedSeconds = worldElapsedSeconds,
+				RealElapsedSeconds = realElapsedSeconds,
+				WorldAccumulatedSeconds = _worldAccumulatedSeconds,
+				RealAccumulatedSeconds = _realAccumulatedSeconds,
 			};
 				
 			if (_registry.TryGetValue(group, out var registry))
@@ -255,8 +255,8 @@ internal class EventLoop : IEventLoop
 	
 	private static EventLoop _singleton = new();
 	
-	private TimeSpan _worldAccumulatedTime;
-	private TimeSpan _realAccumulatedTime;
+	private double _worldAccumulatedSeconds;
+	private double _realAccumulatedSeconds;
 	
 	private Dictionary<EEventLoopTickingGroup, Dictionary<EventLoopRegistration, Rec>> _registry = new();
 	private Dictionary<EEventLoopTickingGroup, Dictionary<EventLoopRegistration, Rec>> _deferredRegistry = new();
