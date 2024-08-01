@@ -154,7 +154,7 @@ public readonly partial struct ReactiveLifecycle : IEquatable<ReactiveLifecycle>
 
 	internal ReactiveLifecycle(IExplicitLifecycle underlyingLifecycle)
 	{
-		lock (underlyingLifecycle.SyncRoot)
+		if (underlyingLifecycle.IsGameThreadOnly)
 		{
 			if (underlyingLifecycle.IsExpired)
 			{
@@ -163,6 +163,20 @@ public readonly partial struct ReactiveLifecycle : IEquatable<ReactiveLifecycle>
 			else
 			{
 				_underlyingLifecycle = underlyingLifecycle;
+			}
+		}
+		else
+		{
+			lock (underlyingLifecycle.SyncRoot)
+			{
+				if (underlyingLifecycle.IsExpired)
+				{
+					_tokenSnapshot = _inlineExpiredToken;
+				}
+				else
+				{
+					_underlyingLifecycle = underlyingLifecycle;
+				}
 			}
 		}
 	}
