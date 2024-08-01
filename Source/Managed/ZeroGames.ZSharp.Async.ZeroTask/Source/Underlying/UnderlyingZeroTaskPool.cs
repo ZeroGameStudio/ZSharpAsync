@@ -2,22 +2,24 @@
 
 namespace ZeroGames.ZSharp.Async.ZeroTask;
 
-public struct UnderlyingZeroTaskPool<TResult, TImpl> where TImpl : class, IPoolableUnderlyingZeroTask<TResult, TImpl>
+public struct UnderlyingZeroTaskPool<TResult, TImpl> where TImpl : class, IPoolableUnderlyingZeroTask<TResult, TImpl>, new()
 {
 	
 	public TImpl Pop()
 	{
+		TImpl task;
 		if (_head is null)
 		{
-			return TImpl.Create();
+			task = new();
 		}
 		else
 		{
-			TImpl task = _head;
-			task.Initialize();
+			task = _head;
 			_head = task.PoolNext;
-			return task;
 		}
+		
+		task.Initialize();
+		return task;
 	}
 
 	public void Push(TImpl task)

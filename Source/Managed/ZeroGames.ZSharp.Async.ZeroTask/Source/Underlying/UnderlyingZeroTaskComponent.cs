@@ -14,6 +14,12 @@ public struct UnderlyingZeroTaskComponent<TResult>
 
 	public void Initialize()
 	{
+		if (Token == default)
+		{
+			// First instantiate, move to a valid token.
+			Token = Token.Next;
+		}
+		
 		_completed = false;
 	}
 

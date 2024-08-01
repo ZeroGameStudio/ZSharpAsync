@@ -141,14 +141,16 @@ public readonly partial struct ZeroTask<TResult> : IZeroTask<TResult>, IAwaitabl
 	public static bool operator ==(ZeroTask<TResult> lhs, ZeroTask<TResult> rhs) => lhs.Equals(rhs);
 	public static bool operator !=(ZeroTask<TResult> lhs, ZeroTask<TResult> rhs) => !lhs.Equals(rhs);
 
-	public static implicit operator ZeroTask(ZeroTask<TResult> @this)
+	public static implicit operator ZeroTask(ZeroTask<TResult> @this) => @this.ToZeroTask();
+
+	public ZeroTask ToZeroTask()
 	{
-		if (@this._underlyingTask is null)
+		if (_underlyingTask is null)
 		{
 			return ZeroTask.CompletedTask;
 		}
 
-		return new(@this._underlyingTask!);
+		return new(_underlyingTask!);
 	}
 	
 	internal ZeroTask(TResult inlineResult)

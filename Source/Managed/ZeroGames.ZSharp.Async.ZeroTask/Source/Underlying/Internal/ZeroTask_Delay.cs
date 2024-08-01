@@ -4,70 +4,57 @@ using System.Runtime.CompilerServices;
 
 namespace ZeroGames.ZSharp.Async.ZeroTask;
 
-internal class ZeroTask_Delay : IPoolableUnderlyingZeroTask<AsyncVoid, ZeroTask_Delay>
+public enum EZeroTaskDelayType
+{
+	WorldPaused,
+	WorldUnpaused,
+	RealPaused,
+	RealUnpaused,
+}
+
+internal class ZeroTask_Delay : UnderlyingZeroTaskBase<TimeSpan, ZeroTask_Delay>
 {
 
-	public static ZeroTask_Delay GetFromPool(TimeSpan delayTime, Lifecycle lifecycle)
+	public static ZeroTask_Delay GetFromPool(EZeroTaskDelayType delayType, TimeSpan delayTime, Lifecycle lifecycle, bool throwOnExpired)
 	{
-		ZeroTask_Delay task = _pool.Pop();
-		task._lifecycle = lifecycle;
+		ZeroTask_Delay task = Pool.Pop();
+		task._delayType = delayType;
 		task._delayTime = delayTime;
+		task.Lifecycle = lifecycle;
+		task.ShouldThrowOnLifecycleExpired = throwOnExpired;
 		
 		return task;
-	}
-	
-	public static ZeroTask_Delay Create()
-	{
-		ZeroTask_Delay task = new();
-		task.Deinitialize();
-		task.Initialize();
-		return task;
-	}
-
-	public void Initialize() => _comp.Initialize();
-
-	public void Deinitialize() => _comp.Deinitialize();
-
-	public EUnderlyingZeroTaskStatus GetStatus(UnderlyingZeroTaskToken token) => _comp.GetStatus(token);
-	
-	public void SetStateMachine(IAsyncStateMachine stateMachine, UnderlyingZeroTaskToken token) => _comp.SetStateMachine(stateMachine, token);
-
-	public void SetContinuation(Action continuation, UnderlyingZeroTaskToken token) => _comp.SetContinuation(continuation, token);
-
-	void IUnderlyingZeroTask.GetResult(UnderlyingZeroTaskToken token) => GetResult(token);
-	public AsyncVoid GetResult(UnderlyingZeroTaskToken token)
-	{
-		AsyncVoid result = _comp.GetResult(token);
-		_pool.Push(this);
-		return result;
 	}
 
 	public void Run()
 	{
-		GlobalTimerScheduler.WorldPausedReliable.Register(static (_, state) =>
+		ITimerScheduler scheduler = _delayType switch
+		{
+			EZeroTaskDelayType.WorldPaused => GlobalTimerScheduler.WorldPausedReliable,
+			EZeroTaskDelayType.WorldUnpaused => GlobalTimerScheduler.WorldUnpausedReliable,
+			EZeroTaskDelayType.RealPaused => GlobalTimerScheduler.RealPausedReliable,
+			EZeroTaskDelayType.RealUnpaused => GlobalTimerScheduler.RealUnpausedReliable,
+			_ => GlobalTimerScheduler.WorldPausedReliable,
+		};
+		
+		scheduler.Register(static (deltaTime, state) =>
 		{
 			ZeroTask_Delay @this = Unsafe.As<ZeroTask_Delay>(state!);
-			if (@this._lifecycle.IsExpired)
+			if (@this.Lifecycle.IsExpired)
 			{
-				@this._comp.SetException(new LifecycleExpiredException(@this._lifecycle));
+				if (@this.ShouldThrowOnLifecycleExpired)
+				{
+					@this.Comp.SetException(new LifecycleExpiredException(@this.Lifecycle));
+				}
 			}
 			else
 			{
-				@this._comp.SetResult(default);
+				@this.Comp.SetResult(deltaTime);
 			}
 		}, this, _delayTime);
 	}
 
-	public UnderlyingZeroTaskToken Token => _comp.Token;
-
-	public ZeroTask_Delay? PoolNext { get; set; }
-
-	private static UnderlyingZeroTaskPool<AsyncVoid, ZeroTask_Delay> _pool;
-
-	private UnderlyingZeroTaskComponent<AsyncVoid> _comp;
-
-	private Lifecycle _lifecycle;
-	
+	private EZeroTaskDelayType _delayType;
 	private TimeSpan _delayTime;
 
 }

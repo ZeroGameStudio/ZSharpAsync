@@ -129,11 +129,11 @@ public struct AsyncZeroTaskMethodBuilder<TResult> : IAsyncMethodBuilder<TResult,
 			}
 			else if (_exception is not null)
 			{
-				return ZeroTask<TResult>.FromException(_exception);
+				return ZeroTask.FromException<TResult>(_exception);
 			}
 			else
 			{
-				return ZeroTask<TResult>.FromResult(_inlineResult!);
+				return ZeroTask.FromResult<TResult>(_inlineResult!);
 			}
 		}
 	}
