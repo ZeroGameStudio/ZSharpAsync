@@ -47,5 +47,7 @@ public class ZSharpAsyncRuntime : ModuleRules
 			{
 			}
 		);
+		
+		PublicDefinitions.Add($"ZSHARP_ASYNC_ASSEMBLY_NAME=\"ZeroGames.ZSharp.Async\"");
 	}
 }
