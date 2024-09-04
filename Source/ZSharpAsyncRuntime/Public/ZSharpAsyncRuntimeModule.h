@@ -11,8 +11,8 @@ class IZSharpAsyncRuntimeModule : public IModuleInterface
 public:
 	static FORCEINLINE IZSharpAsyncRuntimeModule& Get()
 	{
-		static IZSharpAsyncRuntimeModule& Singleton = FModuleManager::LoadModuleChecked<IZSharpAsyncRuntimeModule>("ZSharpAsyncRuntime");
-		return Singleton;
+		static IZSharpAsyncRuntimeModule& GSingleton = FModuleManager::LoadModuleChecked<IZSharpAsyncRuntimeModule>("ZSharpAsyncRuntime");
+		return GSingleton;
 	}
 
 	static FORCEINLINE bool IsAvailable()
