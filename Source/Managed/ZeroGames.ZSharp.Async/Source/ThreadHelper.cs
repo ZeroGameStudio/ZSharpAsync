@@ -23,7 +23,7 @@ public static class ThreadHelper
 		get => UnrealEngineStatics.IsInGameThread;
 	}
 
-	public static SynchronizationContext GameThreadSynchronizationContext => IMasterAssemblyLoadContext.Get()!.SynchronizationContext;
+	public static SynchronizationContext GameThreadSynchronizationContext => IMasterAssemblyLoadContext.Instance!.SynchronizationContext;
 
 }
 

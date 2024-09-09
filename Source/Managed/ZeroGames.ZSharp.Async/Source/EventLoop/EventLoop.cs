@@ -73,7 +73,7 @@ internal class EventLoop : IEventLoop
 		return valid;
 	}
 
-	internal static EventLoop Get() => _singleton;
+	internal static EventLoop Instance { get; } = new();
 	
 	internal void NotifyEvent(EEventLoopTickingGroup group, float worldDeltaSeconds, float realDeltaSeconds, double worldElapsedSeconds, double realElapsedSeconds)
 	{
@@ -243,8 +243,6 @@ internal class EventLoop : IEventLoop
 	}
 	
 	private readonly record struct Rec(EventLoopCallback? Callback, object? State, Lifecycle Lifecycle, Action<LifecycleExpiredException>? OnExpired);
-	
-	private static EventLoop _singleton = new();
 	
 	private AccumulatedSeconds _worldAccumulatedSeconds;
 	private AccumulatedSeconds _realAccumulatedSeconds;

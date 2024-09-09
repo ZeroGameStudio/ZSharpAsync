@@ -16,7 +16,7 @@ public static class GlobalTimerScheduler
 
 	static GlobalTimerScheduler()
 	{
-		IEventLoop.Get().Register(EEventLoopTickingGroup.DuringWorldTimerTick, static (in EventLoopArgs args, object? _) =>
+		IEventLoop.Instance.Register(EEventLoopTickingGroup.DuringWorldTimerTick, static (in EventLoopArgs args, object? _) =>
 		{
 			_worldPausedReliable.Tick(args.WorldDeltaSeconds);
 			_worldPausedUnreliable.Tick(args.WorldDeltaSeconds);
@@ -24,7 +24,7 @@ public static class GlobalTimerScheduler
 			_realPausedUnreliable.Tick(args.RealDeltaSeconds);
 		}, null);
 		
-		IEventLoop.Get().Register(EEventLoopTickingGroup.PostWorldTimerTick, static (in EventLoopArgs args, object? _) =>
+		IEventLoop.Instance.Register(EEventLoopTickingGroup.PostWorldTimerTick, static (in EventLoopArgs args, object? _) =>
 		{
 			_worldUnpausedReliable.Tick(args.WorldDeltaSeconds);
 			_worldUnpausedUnreliable.Tick(args.WorldDeltaSeconds);
