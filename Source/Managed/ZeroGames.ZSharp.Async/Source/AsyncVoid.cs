@@ -2,6 +2,6 @@
 
 namespace ZeroGames.ZSharp.Async;
 
-public struct AsyncVoid;
+public readonly struct AsyncVoid;
 
 
